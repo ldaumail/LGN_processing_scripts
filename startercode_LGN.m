@@ -1,25 +1,9 @@
-if strcmp(getenv('USER'),'maierav')
-    npmkdir    = '/Users/alex 1/Desktop/LAB/Loic/NPMK-master/'; 
-    nbanadir   = '/Users/alex 1/Desktop/LAB/Loic/nbanalysis/'; 
- 
-    directory  = '/Users/alex 1/Desktop/LAB/LoicLGNinfo_4LD/';
-    BRdatafile = '190119_B_cinterocdrft002';
-else
-    npmkdir    = 'C:\Users\maier\Documents\MATLAB\NPMK-master\'; 
-    nbanadir   = 'C:\Users\maier\Documents\bootcamp-selected\nbanalysis\'; 
- 
-    directory  = 'C:\Users\maier\Documents\LGNinfo_4LD-20190826T172747Z-001\LGNinfo_4LD\';
-    BRdatafile = '190119_B_cinterocdrft002';
-end
-
-
 npmkdir    = 'C:\Users\maier\Documents\MATLAB\NPMK-master\'; 
 nbanadir   = 'C:\Users\maier\Documents\bootcamp-selected\nbanalysis\'; 
 
 directory  = 'C:\Users\maier\Documents\LGNinfo_4LD-20190826T172747Z-001\LGNinfo_4LD\';
 BRdatafile = '190119_B_cinterocdrft002';
 filename   = [directory BRdatafile]; 
-
 
 addpath(genpath(directory))
 addpath(genpath(npmkdir))
@@ -272,7 +256,7 @@ for i = 1:length(idx)
      ylh = ylabel(sortedLabels(i));
      %ylh.Position(1) = ylh.Position(1) - abs(ylh.Position(1)*5);
    if i == 12
-       tit = title(gca, 'Voltage (ÂµV)','interpreter','none','fontsize',17, 'FontWeight', 'Normal');
+       tit = title(gca, 'Voltage (µV)','interpreter','none','fontsize',17, 'FontWeight', 'Normal');
        tit.Position(1) = tit.Position(1) - abs(tit.Position(1))*1.5;
        %tit.Position(2) = tit.Position(2) + abs(tit.Position(2))*200;
        tit.Rotation =90;
@@ -317,7 +301,7 @@ for i = 1:length(idx)
      ylh = ylabel(sortedLabels(i));
      %ylh.Position(1) = ylh.Position(1) - abs(ylh.Position(1)*5);
    if i == 12
-       tit = title(gca, 'Voltage (ÂµV)','interpreter','none','fontsize',17, 'FontWeight', 'Normal');
+       tit = title(gca, 'Voltage (µV)','interpreter','none','fontsize',17, 'FontWeight', 'Normal');
        tit.Position(1) = tit.Position(1) - abs(tit.Position(1))*1.5;
        %tit.Position(2) = tit.Position(2) + abs(tit.Position(2))*200;
        tit.Rotation =90;
@@ -363,7 +347,7 @@ for i = 1:length(idx)
      ylh = ylabel(sortedLabels(i));
      %ylh.Position(1) = ylh.Position(1) - abs(ylh.Position(1)*5);
    if i == 12
-       tit = title(gca, 'Voltage (ÂµV)','interpreter','none','fontsize',17, 'FontWeight', 'Normal');
+       tit = title(gca, 'Voltage (µV)','interpreter','none','fontsize',17, 'FontWeight', 'Normal');
        tit.Position(1) = tit.Position(1) - abs(tit.Position(1))*1.5;
        %tit.Position(2) = tit.Position(2) + abs(tit.Position(2))*200;
        tit.Rotation =90;
@@ -420,7 +404,7 @@ for i = 1:length(idx)
      ylh = ylabel(sortedLabels(i));
      ylh.Position(1) = ylh.Position(1) - abs(ylh.Position(1)*5);
    if i == length(mean_LFP(1,:))/2
-       tit = title(gca, 'Voltage (ÂµV)','interpreter','none','fontsize',17, 'FontWeight', 'Normal');
+       tit = title(gca, 'Voltage (µV)','interpreter','none','fontsize',17, 'FontWeight', 'Normal');
        tit.Position(1) = tit.Position(1) - abs(tit.Position(1))*1.5;
        tit.Rotation =90;
    end
@@ -463,7 +447,7 @@ for i = 1:length(idx)
      ylh = ylabel(sortedLabels(i));
      %ylh.Position(1) = ylh.Position(1) - abs(ylh.Position(1)*5);
    if i == 12
-       tit = title(gca, 'Voltage (ÂµV)','interpreter','none','fontsize',17, 'FontWeight', 'Normal');
+       tit = title(gca, 'Voltage (µV)','interpreter','none','fontsize',17, 'FontWeight', 'Normal');
        tit.Position(1) = tit.Position(1) - abs(tit.Position(1))*1.5;
        %tit.Position(2) = tit.Position(2) + abs(tit.Position(2))*200;
        tit.Rotation =90;
@@ -509,7 +493,7 @@ for i = 1:length(idx)
      %ylh.Position(1) = ylh.Position(1) - abs(ylh.Position(1)*5);
    if i == length(mean_CSD(1,:))/2
        
-       tit = title(gca, 'Voltage (ÂµV)','interpreter','none','fontsize',17, 'FontWeight', 'Normal');
+       tit = title(gca, 'Voltage (µV)','interpreter','none','fontsize',17, 'FontWeight', 'Normal');
        tit.Position(1) = tit.Position(1) - abs(tit.Position(1))*1.5;
        %tit.Position(2) = tit.Position(2) + abs(tit.Position(2))*200;
        tit.Rotation =90;
