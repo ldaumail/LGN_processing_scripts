@@ -17,7 +17,7 @@ if any(strfind(inputname(1), 'LFP')) || any(strfind(inputname(1), 'MUA'))
      end 
    
 else 
-   norm_mean_adj = mean_adj; 
+   norm_mean_adj = -mean_adj; 
 end
 sortedLabels = 1:length(data(1,:,1));
 xabs = -50:1500;
