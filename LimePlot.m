@@ -3,22 +3,26 @@ function [outputplot] = LimePlot(data, filetitle, filename, contrast)
 %   Detailed explanation goes here
 %baseline adjusted data process
 
-basedata = data(25:75,:,:);
-mean_bp = mean(basedata,1); % length(data(1,1,:))) ;
-adj_data = data(:,:,:) - mean_bp;
-mean_adj = mean(adj_data,3);
-
-
+%compute mean of the data across trials
+mean_data = mean(data,3);
 % if the data is either LFP or MUA, do a normalization (data - min)/(max-min)
 if any(strfind(inputname(1), 'LFP')) || any(strfind(inputname(1), 'MUA'))
- norm_mean_adj = nan(length(mean_adj(:,1)),length(mean_adj(1,:)));
+ norm_mean = nan(length(mean_data(:,1)),length(mean_data(1,:)));
      for n=1:24
-     norm_mean_adj(:,n) = (mean_adj(:,n) - min(mean_adj(:,n)))/(max(mean_adj(:,n))-min(mean_adj(:,n)));
+     norm_mean(:,n) = (mean_data(:,n) - min(mean_data(:,n)))/(max(mean_data(:,n))-min(mean_data(:,n)));
      end 
-   
 else 
-   norm_mean_adj = -mean_adj; 
+   norm_mean = mean_data; 
 end
+%baseline adjusted data process
+basedata = norm_mean(25:75,:);
+mean_bp = mean(basedata,1);
+if any(strfind(inputname(1), 'LFP')) || any(strfind(inputname(1), 'MUA'))
+norm_mean_adj = norm_mean(:,:) - mean_bp;
+else
+ norm_mean_adj = -(norm_mean(:,:) - mean_bp); 
+end
+
 sortedLabels = 1:length(data(1,:,1));
 xabs = -50:1500;
 h = figure();

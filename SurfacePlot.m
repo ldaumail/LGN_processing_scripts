@@ -5,26 +5,23 @@ function [outputplot] = SurfacePlot(data, filetitle, filename, contrast)
 %-LFP or MUA: normalized;
 %-filtered and interpolated with filterCSD function and plotted.
 
-
-%baseline adjusted data process
-basedata = data(25:75,:,:);
-%mean_bp = mean(mean(basedata,3),1);
-mean_bp = mean(basedata,1);
-%mean_data = mean(data,3);
-%mean_adj = mean_data(:,:) - mean_bp;
-adj_data = data(:,:,:) - mean_bp;
-mean_adj = mean(adj_data,3);
-
-
+%compute mean of the data across trials
+mean_data = mean(data,3);
 % if the data is either LFP or MUA, do a normalization (data - min)/(max-min)
 if any(strfind(inputname(1), 'LFP')) || any(strfind(inputname(1), 'MUA'))
- norm_mean_adj = nan(length(mean_adj(:,1)),length(mean_adj(1,:)));
+ norm_mean = nan(length(mean_data(:,1)),length(mean_data(1,:)));
      for n=1:24
-     norm_mean_adj(:,n) = (mean_adj(:,n) - min(mean_adj(:,n)))/(max(mean_adj(:,n))-min(mean_adj(:,n)));
+     norm_mean(:,n) = (mean_data(:,n) - min(mean_data(:,n)))/(max(mean_data(:,n))-min(mean_data(:,n)));
      end 
 else 
-   norm_mean_adj = mean_adj; 
+   norm_mean = mean_data; 
 end
+%baseline adjusted data process
+basedata = norm_mean(25:75,:);
+mean_bp = mean(basedata,1);
+
+norm_mean_adj = norm_mean(:,:) - mean_bp;
+
 fint_data = filterCSD(norm_mean_adj')';
 
 h = figure();
