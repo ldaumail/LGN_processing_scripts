@@ -16,7 +16,7 @@ end
 npmkdir    = 'C:\Users\maier\Documents\MATLAB\NPMK-master\'; 
 nbanadir   = 'C:\Users\maier\Documents\bootcamp-selected\nbanalysis\'; 
 
-directory  = 'C:\Users\maier\Documents\LGNinfo_4LD-20190826T172747Z-001\LGN_190326_B-cinterocdrft_data\';
+directory  = 'C:\Users\maier\Documents\LGN_data\LGN_190326_B-cinterocdrft001_data\';
 BRdatafile = '190326_B_cinterocdrft001';
 filename   = [directory BRdatafile]; 
 
@@ -79,9 +79,9 @@ EventTimes      = floor(NEV.Data.SerialDigitalIO.TimeStampSec.*1000); % convert 
 
 STIM            = sortStimandTimeData(grating,pEvC,pEvT,'stim'); % this is in nbanalysis. definitely double check it before you use it. 
 
-tridx = STIM.contrast ==0 & STIM.fixedc >= 0.5;
+tridx = STIM.contrast >=0.5 & STIM.fixedc == 0;
 %tridx = STIM.contrast >= 0.5 & STIM.fixedc >= 0.5;
-contrast = '_dom0_nondomsup50';
+contrast = '_domsup50_nondom0';
 
 %if you already have the data stored into a file, write it like
 %this:
@@ -93,6 +93,11 @@ cont_CSD = CSD.STIM_CSD(1:1551,:,tridx);
 
 %% Create plots
 %% plot baseline corrected mean normalized data
+
+data = cat(4,cont_LFP, cont_aMUA, cont_CSD);
+newLimePlot(data, BRdatafile, filename, contrast)
+ 
+ 
    %LFP
  LimePlot(cont_LFP, BRdatafile, filename, contrast)
    %aMUA
@@ -105,6 +110,17 @@ cont_CSD = CSD.STIM_CSD(1:1551,:,tridx);
  SurfacePlot(cont_CSD, BRdatafile, filename, contrast)
  
  
+ %{
+ mean_LFP = mean(cont_LFP,3);
+ norm_mean = nan(length(mean_data(:,1)),length(mean_data(1,:)));
+     for n=1:24
+     norm_mean(:,n) = (mean_LFP(:,n) - min(mean_LFP(:,n)))/(max(mean_LFP(:,n))-min(mean_LFP(:,n)));
+     end 
+ baseline = mean(norm_mean(1:50,:),1);
+ bscorr = norm_mean -baseline;
+ figure();
+ f_ShadedLinePlotbyDepth(bscorr,1:length(bscorr(1,:)),-50:1500,1:length(bscorr(1,:)),1)
+}%
 %% LOAD discrete MUA with ppnev file
 % to get the ppNEV files [post-processed NEV] use the offlineBRAutoSort
 % directory under https://github.com/maierav/KiloSortUtils
