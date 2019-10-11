@@ -148,9 +148,16 @@ DE50_NDE50_aMUA.aMUA9 = DE50_NDE50_aMUA9;
 DE50_NDE50_aMUA.aMUA10 = DE50_NDE50_aMUA10;
 
 fns = fieldnames(DE0_NDE50_aMUA);
+xabs = -50:1500;
+h = figure;
+subplot(length(fns),3,1)
 for i = 1:length(fns)
-    
     data = DE0_NDE50_aMUA.(fns{i});
-    %sprintf('NDE0_DE50_aMUA%d', i);
-    
+    mean_data = mean(squeeze(data),3);
+    norm_mean = (mean_data - min(mean_data))/(max(mean_data)-min(mean_data));
+    basedata = norm_mean(25:75);
+    mean_bp = mean(basedata,1);
+    norm_mean_bscorr = norm_mean - mean_bp;
+    subplot(i,3,1)
+    plot(xabs, norm_mean_bscorr)
 end
