@@ -147,17 +147,362 @@ DE50_NDE50_aMUA.aMUA8 = DE50_NDE50_aMUA8;
 DE50_NDE50_aMUA.aMUA9 = DE50_NDE50_aMUA9;
 DE50_NDE50_aMUA.aMUA10 = DE50_NDE50_aMUA10;
 
-fns = fieldnames(DE0_NDE50_aMUA);
-xabs = -50:1500;
+
+data = struct();
+data.DE0_NDE50_aMUA = DE0_NDE50_aMUA;
+data.DE50_NDE0_aMUA = DE50_NDE0_aMUA; 
+data.DE50_NDE50_aMUA =DE50_NDE50_aMUA;
+
+%fns1 = fieldnames(data);
+
+%% plot normalized and baseline corrected data
+  
+
 h = figure;
-subplot(length(fns),3,1)
-for i = 1:length(fns)
+
+xabs = -50:1500;
+scale_factor_y = 1.2;
+fns = fieldnames(DE0_NDE50_aMUA);
+norm_mean_bscorr = nan(length(xabs), length(fns));
+
+ for i = 1:length(fns)
+     
     data = DE0_NDE50_aMUA.(fns{i});
     mean_data = mean(squeeze(data),3);
     norm_mean = (mean_data - min(mean_data))/(max(mean_data)-min(mean_data));
     basedata = norm_mean(25:75);
     mean_bp = mean(basedata,1);
-    norm_mean_bscorr = norm_mean - mean_bp;
-    subplot(i,3,1)
-    plot(xabs, norm_mean_bscorr)
-end
+    norm_mean_bscorr(:,i) = norm_mean - mean_bp;
+    
+    sp = subplot(length(fns), 1, i);
+    plot(xabs, norm_mean_bscorr(:, i))
+    %set(sp,'position',get(sp,'position').*[1 1 1 scale_factor_y]);
+    hold on
+    plot([0 0], ylim,'k')
+    hold on
+    plot([1150 1150], ylim,'k')
+
+    xlim([-50 1500]);
+    ylim([-0.2 0.2]);
+    
+    if i == 1
+    title('DE0_NDE50_aMUA', 'Interpreter', 'none')
+    end
+    if i == length(fns)/2
+        ylh = ylabel({'\fontsize{9}Contacts','\fontsize{9}(microV)'});
+    end
+    if i <= length(fns)
+        set(subplot(length(fns),1,i), 'XTick', [])
+    end
+   
+ end
+    xlabel('\fontsize{9}time (ms)')
+
+ %% plot percent change
+ 
+ h = figure;
+
+xabs = -50:1500;
+scale_factor_y = 1.2;
+fns = fieldnames(DE0_NDE50_aMUA);
+norm_mean_percentch = nan(length(xabs), length(fns));
+
+ for i = 1:length(fns)
+     
+    data = DE0_NDE50_aMUA.(fns{i});
+    mean_data = mean(squeeze(data),2);
+    norm_mean = (mean_data - min(mean_data))/(max(mean_data)-min(mean_data));
+    basedata = norm_mean(25:75);
+    mean_bp = mean(basedata,1);
+    norm_mean_percentch(:,i) = (norm_mean - mean_bp)/mean_bp;
+    
+    sp = subplot(length(fns), 1, i);
+    plot(xabs, norm_mean_percentch(:, i))
+    %set(sp,'position',get(sp,'position').*[1 1 1 scale_factor_y]);
+    hold on
+    plot([0 0], ylim,'k')
+    hold on
+    plot([1150 1150], ylim,'k')
+
+    xlim([-50 1500]);
+    ylim([-1 3]);
+    
+    if i == 1
+    title({'DE0_NDE50_aMUA', 'percent change'}, 'Interpreter', 'none')
+    end
+    if i == length(fns)/2
+        ylh = ylabel({'\fontsize{9}Contacts','\fontsize{9}(no unit)'});
+    end
+    if i <= length(fns)
+        set(subplot(length(fns),1,i), 'XTick', [])
+    end
+   
+ end
+    xlabel('\fontsize{9}time (ms)')
+    
+    %% filtered data percent change and linear regression
+
+h = figure;
+
+xabs = -50:1500;
+nyq = 15000;
+fns = fieldnames(DE50_NDE50_aMUA);
+norm_mean_percentch = nan(length(xabs), length(fns));
+
+clear i ;
+ for i = 1:length(fns)
+     
+   mean_data = mean(squeeze(DE50_NDE50_aMUA.(fns{i})),2);
+   norm_mean = (mean_data - min(mean_data))/(max(mean_data)-min(mean_data));
+   basedata = norm_mean(25:75);
+   mean_bp = mean(basedata,1);
+   norm_mean_percentch(:,i) = (norm_mean - mean_bp)/mean_bp;
+   
+   lpc       = 100; %low pass cutoff
+   lWn       = lpc/nyq;
+   [bwb,bwa] = butter(4,lWn,'low');
+   %cdata = ;
+   lpaMUA      = filtfilt(bwb,bwa, norm_mean_percentch(:,i));
+ 
+   
+   %find maxima of the filtered data and plot linear regression
+   [pksaMUA, locsaMUA] = findpeaks(lpaMUA(50:1201));
+   linreg1 = polyfit(locsaMUA, pksaMUA, 1);
+   
+   
+   ylinreg1 = linreg1(1) .* locsaMUA + linreg1(2);
+   sp = subplot(length(fns), 1, i);
+    plot(xabs,lpaMUA)
+    hold on
+    %plot(locsaMUA, pksaMUA)
+    hold on
+    plot(locsaMUA, ylinreg1)
+    txt1 = ['y = (' num2str(linreg1(1)) ')x + (' num2str(linreg1(2)) ')'];
+    text(locsaMUA(1), ylinreg1(1), txt1);
+    %set(sp,'position',get(sp,'position').*[1 1 1 scale_factor_y]);
+    hold on
+    plot([0 0], ylim,'k')
+    hold on
+    plot([1150 1150], ylim,'k')
+
+    xlim([-50 1500]);
+    ylim([-1 2]);
+    
+    if i == 1
+    title({'DE50_NDE50_aMUA', 'percent change'}, 'Interpreter', 'none')
+    end
+    if i == length(fns)/2
+        ylh = ylabel({'\fontsize{9}Contacts','\fontsize{9}(no unit)'});
+    end
+    if i <= length(fns)
+        set(subplot(length(fns),1,i), 'XTick', [])
+    end
+   
+ end
+    xlabel('\fontsize{9}time (ms)')
+    
+%% plot all slopes together (filtered data)
+
+h = figure;
+
+xabs = -50:1500;
+nyq = 15000;
+fns = fieldnames(DE50_NDE0_aMUA);
+norm_mean_percentch = nan(length(xabs), length(fns));
+linreg_all = nan(2, length(fns));
+clear i ;
+ for i = 1:length(fns)
+     
+   mean_data = mean(squeeze(DE50_NDE0_aMUA.(fns{i})),2);
+   norm_mean = (mean_data - min(mean_data))/(max(mean_data)-min(mean_data));
+   basedata = norm_mean(25:75);
+   mean_bp = mean(basedata,1);
+   norm_mean_percentch(:,i) = (norm_mean - mean_bp)/mean_bp;
+   
+   lpc       = 100; %low pass cutoff
+   lWn       = lpc/nyq;
+   [bwb,bwa] = butter(4,lWn,'low');
+   %cdata = ;
+   lpaMUA      = filtfilt(bwb,bwa, norm_mean_percentch(:,i));
+ 
+   
+   %find maxima of the filtered data and plot linear regression
+   [pksaMUA, locsaMUA] = findpeaks(lpaMUA(50:1201));
+   linreg1 = polyfit(locsaMUA, pksaMUA, 1);
+   linreg_all(:,i) = linreg1;
+   
+   ylinreg1 = linreg1(1) .* locsaMUA + linreg1(2);
+plot(locsaMUA, ylinreg1)
+hold on
+    if i == 1
+    title({'DE50_NDE0_aMUA', 'linreg on maxima: all slopes'}, 'Interpreter', 'none')
+    end
+ end
+ 
+ 
+ %% percent change and linear regression (no filter)
+    
+h = figure;
+
+xabs = -50:1500;
+nyq = 15000;
+fns = fieldnames(DE0_NDE50_aMUA);
+norm_mean_percentch = nan(length(xabs), length(fns));
+linreg_all = nan(2, length(fns));
+clear i ;
+ for i = 1:length(fns)
+     
+   mean_data = mean(squeeze(DE0_NDE50_aMUA.(fns{i})),2);
+   norm_mean = (mean_data - min(mean_data))/(max(mean_data)-min(mean_data));
+   basedata = norm_mean(25:75);
+   mean_bp = mean(basedata,1);
+   norm_mean_percentch(:,i) = (norm_mean - mean_bp)/mean_bp;
+   %{
+   lpc       = 100; %low pass cutoff
+   lWn       = lpc/nyq;
+   [bwb,bwa] = butter(4,lWn,'low');
+   %cdata = ;
+   lpaMUA      = filtfilt(bwb,bwa, norm_mean_percentch(:,i));
+ %}
+   
+   %find maxima of the filtered data and plot linear regression
+   [pksaMUA, locsaMUA] = findpeaks(norm_mean_percentch(50:1201,i));
+   linreg1 = polyfit(locsaMUA, pksaMUA, 1);
+   linreg_all(:,i) = linreg1;
+   
+   ylinreg1 = linreg1(1) .* locsaMUA + linreg1(2);
+   sp = subplot(length(fns), 1, i);
+    plot(xabs, norm_mean_percentch(:,i))
+    hold on
+    %plot(locsaMUA, pksaMUA)
+    hold on
+    plot(locsaMUA, ylinreg1)
+    txt1 = ['y = (' num2str(linreg1(1)) ')x + (' num2str(linreg1(2)) ')'];
+    text(locsaMUA(1), ylinreg1(1), txt1);
+    %set(sp,'position',get(sp,'position').*[1 1 1 scale_factor_y]);
+    hold on
+    plot([0 0], ylim,'k')
+    hold on
+    plot([1150 1150], ylim,'k')
+
+    xlim([-50 1500]);
+    ylim([-1 2]);
+    
+    if i == 1
+    title({'DE0_NDE50_aMUA', 'percent change'}, 'Interpreter', 'none')
+    end
+    if i == length(fns)/2
+        ylh = ylabel({'\fontsize{9}Contacts','\fontsize{9}(no unit)'});
+    end
+    if i <= length(fns)
+        set(subplot(length(fns),1,i), 'XTick', [])
+    end
+   
+ end
+    xlabel('\fontsize{9}time (ms)')
+    
+    %% plot all slopes together (no filter)
+
+h = figure;
+unitnames = {'190326','190326','190213','190213','190210','190208','190120', ...
+    '190119','190119','190124', 'mean'};
+xabs = -50:1500;
+xabs2 = 0:1150;
+nyq = 15000;
+fns = fieldnames(DE50_NDE0_aMUA);
+norm_mean_percentch = nan(length(xabs), length(fns));
+linreg_all = nan(2, length(fns));
+mean_linreg = nan(2,1);
+clear i ;
+ for i = 1:length(fns)
+     
+   mean_data = mean(squeeze(DE50_NDE0_aMUA.(fns{i})),2);
+   norm_mean = (mean_data - min(mean_data))/(max(mean_data)-min(mean_data));
+   basedata = norm_mean(25:75);
+   mean_bp = mean(basedata,1);
+   norm_mean_percentch(:,i) = (norm_mean - mean_bp)/mean_bp;
+   %{
+   lpc       = 100; %low pass cutoff
+   lWn       = lpc/nyq;
+   [bwb,bwa] = butter(4,lWn,'low');
+   %cdata = ;
+   lpaMUA      = filtfilt(bwb,bwa, norm_mean_percentch(:,i));
+ %}
+   
+   %find maxima of the filtered data and plot linear regression
+   [pksaMUA, locsaMUA] = findpeaks(norm_mean_percentch(50:1201, i));
+   linreg1 = polyfit(locsaMUA, pksaMUA, 1);
+   linreg_all(:,i) = linreg1;
+   
+   ylinreg1 = linreg1(1) .* locsaMUA + linreg1(2);
+  
+plot(locsaMUA, ylinreg1)
+txt1 = [unitnames{i}];
+    text(locsaMUA(1), ylinreg1(1), txt1);
+hold on
+
+    if i == 1
+    title({'DE50_NDE0_aMUA', 'linreg on maxima: all slopes'}, 'Interpreter', 'none')
+    end
+ end
+ mean_linreg = mean(linreg_all, 2);
+ ymeanlin = mean_linreg(1) .*xabs2 + mean_linreg(2);
+ hold on
+ plot(xabs2,ymeanlin)
+ txt1 = [unitnames{11}  'y = (' num2str(mean_linreg(1)) ')x + (' num2str(mean_linreg(2)) ')'];
+    text(xabs2(200), ymeanlin(200), txt1)
+legend('190326','190326','190213','190213','190210','190208','190120', ...
+    '190119','190119','190124', 'mean')
+%% same with filtered data
+h = figure;
+unitnames = {'190326','190326','190213','190213','190210','190208','190120', ...
+    '190119','190119','190124', 'mean'};
+xabs = -50:1500;
+xabs2 = 0:1150;
+nyq = 15000;
+fns = fieldnames(DE50_NDE50_aMUA);
+norm_mean_percentch = nan(length(xabs), length(fns));
+linreg_all = nan(2, length(fns));
+pvalues = nan(1,length(fns));
+mean_linreg = nan(2,1);
+clear i ;
+ for i = 1:length(fns)
+     
+   mean_data = mean(squeeze(DE50_NDE50_aMUA.(fns{i})),2);
+   norm_mean = (mean_data - min(mean_data))/(max(mean_data)-min(mean_data));
+   basedata = norm_mean(25:75);
+   mean_bp = mean(basedata,1);
+   norm_mean_percentch(:,i) = (norm_mean - mean_bp)/mean_bp;
+   
+   lpc       = 100; %low pass cutoff
+   lWn       = lpc/nyq;
+   [bwb,bwa] = butter(4,lWn,'low');
+   %cdata = ;
+   lpaMUA      = filtfilt(bwb,bwa, norm_mean_percentch(:,i));
+ 
+   
+   %find maxima of the filtered data and plot linear regression
+   [pksaMUA, locsaMUA] = findpeaks(lpaMUA(50:1201));
+   linreg1 = fitlm(locsaMUA, pksaMUA, 'y ~ x1');
+   linreg_all(:,i) = table2array(linreg1.Coefficients(1:2,1));
+   pvalues(i) = table2array(linreg1.Coefficients(2,4));
+   ylinreg1 = linreg_all(2,i) .* locsaMUA + linreg_all(1,i);
+  
+plot(locsaMUA, ylinreg1)
+txt1 = [unitnames{i}];
+    text(locsaMUA(1), ylinreg1(1), txt1);
+hold on
+
+    if i == 1
+    title({'DE50_NDE50_aMUA', 'linreg on maxima: all slopes'}, 'Interpreter', 'none')
+    end
+ end
+ mean_linreg = mean(linreg_all, 2);
+ ymeanlin = mean_linreg(2) .*xabs2 + mean_linreg(1);
+ hold on
+ plot(xabs2,ymeanlin)
+ txt1 = [unitnames{11}  'y = (' num2str(mean_linreg(2)) ')x + (' num2str(mean_linreg(1)) ')'];
+    text(xabs2(200), ymeanlin(200), txt1)
+legend('190326','190326','190213','190213','190210','190208','190120', ...
+    '190119','190119','190124', 'mean')
+
