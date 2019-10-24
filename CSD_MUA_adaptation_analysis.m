@@ -151,7 +151,7 @@ data_header.contrast1 = STIM.contrast ==0 & STIM.fixedc >= 0.5;
 data_header.contrast2 = STIM.contrast >=0.5 & STIM.fixedc == 0;
 data_header.contrast3 = STIM.contrast >=0.5 & STIM.fixedc >= 0.5;
 
-f = {'_dom0_nondomsup50','_domsup50_nondom0','_domsup50_domsup50'};
+f = {'_dom0_nondomsup50','_domsup50_nondom0','_domsup50_nondomsup50'};
 
 %f.data_header= {'_dom0_nondomsup50','_domsup50_nondom0','_domsup50_nondomsup50'};
 %[data_header.(f)] = f{'_dom0_nondomsup50','_domsup50_nondom0','_domsup50_nondomsup50'};
@@ -166,9 +166,9 @@ cont_LFP = LFP.LFP_data(1:1551,:,data_header.contrast2(1:length(LFP.LFP_data(1,1
 cont_CSD = CSD.CSD_data(1:1551,:,data_header.contrast2(1:length(CSD.CSD_data(1,1,:))));
 %}
 
-cont_aMUA = aMUA.STIM_aMUA(1:1551,:,data_header.contrast2(1:length(aMUA.STIM_aMUA(1,1,:))));
-cont_LFP = LFP.STIM_LFP(1:1551,:,data_header.contrast2(1:length(LFP.STIM_LFP(1,1,:))));
-cont_CSD = CSD.STIM_CSD(1:1551,:,data_header.contrast2(1:length(CSD.STIM_CSD(1,1,:))));
+cont_aMUA = aMUA.STIM_aMUA(1:1551,:,data_header.contrast3(1:length(aMUA.STIM_aMUA(1,1,:))));
+cont_LFP = LFP.STIM_LFP(1:1551,:,data_header.contrast3(1:length(LFP.STIM_LFP(1,1,:))));
+cont_CSD = CSD.STIM_CSD(1:1551,:,data_header.contrast3(1:length(CSD.STIM_CSD(1,1,:))));
 
 
  %filter aMUA and CSD
@@ -195,7 +195,7 @@ mean_CSD = mean(lpCSD,3);
 %std_CSD = std(lpCSD,0,3);
 % if the data is either LFP or MUA, do a normalization (data - min)/(max-min)
  norm_mean_aMUA = nan(length(mean_aMUA(:,1)),length(mean_aMUA(1,:)));
- norm_mean_CSD = nan(length(mean_CSD(:,1)),length(mean_CSD(1,:)));
+ 
  %norm_std_CSD = nan(length(std_CSD(:,1)),length(std_CSD(1,:)));
  %norm_std_aMUA = nan(length(std_aMUA(:,1)),length(std_aMUA(1,:)));
  
@@ -208,24 +208,27 @@ end
 
 %no normalization for CSD
 
-   scalingfactor = max(abs(mean_CSD(:,18)),[],1);
-   norm_mean_CSD = mean_CSD .* 1/scalingfactor; 
-   %norm_std_CSD = std_CSD .* 50/scalingfactor; 
 
 %baseline corrected data process
 baseaMUA = norm_mean_aMUA(25:75,:);
-baseCSD = norm_mean_CSD(25:75,:);
+baseCSD = mean_CSD(25:75,:);
 mean_bp_aMUA = mean(baseaMUA,1);
 mean_bp_CSD = mean(baseCSD,1);
 
-%std_bp_aMUA = std(baseaMUA,0,1);
-%std_bp_CSD = std(baseCSD,0,1);
+std_bp_aMUA = std(baseaMUA,0,1);
+std_bp_CSD = std(baseCSD,0,1);
 
 norm_mean_bscorr_aMUA = norm_mean_aMUA(:,:) - mean_bp_aMUA;
 %norm_std_bscorr_aMUA = norm_std_aMUA(:,:) - std_bp_aMUA;
 
     %Make sure CSD gets inverted
-norm_mean_bscorr_CSD = -(norm_mean_CSD(:,:) - mean_bp_CSD); 
+norm_mean_bscorr_CSD = -(mean_CSD(:,:) - mean_bp_CSD); 
+
+%scale CSD to [-1 1]
+scalingfactor1 = max(abs(norm_mean_bscorr_CSD(:,18)),[],1);
+scalingfactor2 = max(abs(norm_mean_bscorr_CSD(:,18)),[],1);
+norm_mean_bscorr_CSD = norm_mean_bscorr_CSD .* 1/scalingfactor1; 
+norm_mean_bscorr_aMUA =norm_mean_bscorr_aMUA .* 1/scalingfactor2; 
 %norm_std_bscorr_CSD = -(norm_std_CSD(:,:) - std_bp_CSD);
 
 %csd_under_lim = norm_mean_bscorr_CSD - norm_std_bscorr_CSD;
@@ -237,6 +240,10 @@ norm_mean_bscorr_CSD = -(norm_mean_CSD(:,:) - mean_bp_CSD);
 %find local maxima to plot a tendency line
 [pksaMUA, locsaMUA] = findpeaks(norm_mean_bscorr_aMUA(:,18));
 [pksCSD, locsCSD] = findpeaks(norm_mean_bscorr_CSD(:,18) .*(-1));
+linreg1 = polyfit(locsaMUA, pksaMUA, 1);
+ylinreg1 = linreg1(1) .* locsaMUA + linreg1(2);
+linreg2 = polyfit(locsCSD, pksCSD, 1);
+ylinreg2 = linreg2(1) .* locsCSD + linreg2(2);
 
 xabs = -50:1500;
 
@@ -258,22 +265,43 @@ hold on
 %findpeaks(norm_mean_bscorr_CSD(:,18))
 hold on
 plot(locsaMUA, pksaMUA)
+hold on
 plot(locsCSD, pksCSD*(-1))
+hold on
+plot(locsaMUA, ylinreg1)
+txt1 = ['y = (' num2str(linreg1(1)) ')x + (' num2str(linreg1(2)) ')'];
+text(locsaMUA(1), ylinreg1(1), txt1);
+hold on
+plot(locsCSD, -ylinreg2)
+txt2 = ['y = (' num2str(-linreg2(1)) ')x - (' num2str(linreg2(2)) ')'];
+text(locsCSD(1), -ylinreg2(1), txt2);
 %plot(xabs, csd_under_lim(:, 18))
 %hold on
 plot([0 0], ylim,'k')
 plot([1150 1150], ylim,'k')
 plot(xlim ,[0 0],'k')
 title({strcat(sprintf('Scaled LGN %s averaged data',  char(BRdatafile))), ...
-    strcat('Normalized, bs corrected aMUA over  bs corrected CSD ', f{2})}, ...
+    strcat('Normalized, bs corrected aMUA over  bs corrected CSD ', f{3})}, ...
     'Interpreter', 'none', 'fontsize', 20, 'FontWeight', 'bold')
 
 xlabel('\fontsize{9}time (ms)')
-ylabel({'\fontsize{9}Channel 18','\fontsize{9}(no unit)'})
+ylabel({'\fontsize{9}Channel 9','\fontsize{9}(no unit)'})
 legend('\fontsize{9}aMUA', '\fontsize{9}CSD')
 hold off
 
 
+%z-score
+
+aMUA_zscore = norm_mean_bscorr_aMUA .* 1/(std_bp_aMUA);
+CSD_zscore = norm_mean_bscorr_CSD .* 1/(std_bp_CSD);
+
+[pksaMUAz, locsaMUAz] = findpeaks(aMUA_zscore);
+[pksCSDz, locsCSDz] = findpeaks(CSD_zscore .*(-1));
+
+figure();
+plot(xabs, aMUA_zscore(:,18))
+hold on 
+plot(xabs, norm_mean_bscorr_aMUA(:,18))
 %x_width=40; y_width=30;
 %set(h, 'PaperPosition', [0 0 x_width y_width]);
 %saveas(gcf,strcat(filename, 'all',contrast, '_plots_scaletest2', '.png'));
