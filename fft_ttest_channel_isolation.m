@@ -68,10 +68,14 @@ fourhzpower(chan,tr) = power(chan,tr,index);
     for testnb = 1:3
     X = cont_power_cell{testnb};
     Y = cont_power.cont4_power;
-    %[signi(chan, testnb), pvalue(chan,testnb)] = ttest2(X,Y);
-  
+    [signi(chan, testnb), pvalue(chan,testnb)] = ttest2(X,Y);
+    statistics = struct();
+    statistics.significance = signi;
+    statistics.pvalues = pvalue;
+   
+    %{
     [signi(chan, testnb), pvalue(chan,testnb), ci(chan,testnb,:), stats] = ttest2(X,Y);
-   %{
+  
     all_stats.strcat('stats', sprintf('channel %d',chan), hypo{testnb}) = stats;
     statistics = struct();
     statistics.significance = signi;
@@ -91,25 +95,35 @@ fourhzpower(chan,tr) = power(chan,tr,index);
         channel_data.hypo{2}.cont2_power_chan = power(data_header.contrast2(1:length(STIMdMUA.STIM.sdftr(1,chan,:))));
         channel_data.hypo{3}.cont3_power_chan = power(data_header.contrast3(1:length(STIMdMUA.STIM.sdftr(1,chan,:))));
         
+        
+        channel_data.hypo{1}.cont1_stats_chan.significance = statistics.significance(chan,:);
+        channel_data.hypo{2}.cont2_stats_chan.significance = statistics.significance(chan,:);
+        channel_data.hypo{3}.cont3_stats_chan.significance = statistics.significance(chan,:);
+        channel_data.hypo{1}.cont1_stats_chan.pvalue = statistics.pvalues(chan,:);
+        channel_data.hypo{2}.cont2_stats_chan.pvalue = statistics.pvalues(chan,:);
+        channel_data.hypo{3}.cont3_stats_chan.pvalue = statistics.pvalues(chan,:);
         %{
-        channel_data.hypo{1}.cont1_stats_chan.significance = statistics.significance.signi(chan,:);
-        channel_data.hypo{2}.cont2_stats_chan.significance = statistics.significance.signi(chan,:);
-        channel_data.hypo{3}.cont3_stats_chan.significance = statistics.significance.signi(chan,:);
-        channel_data.hypo{1}.cont1_stats_chan.pvalue = statistics.pvalues.pvalue(chan,:);
-        channel_data.hypo{2}.cont2_stats_chan.pvalue = statistics.pvalues.pvalue(chan,:);
-        channel_data.hypo{3}.cont3_stats_chan.pvalue = statistics.pvalues.pvalue(chan,:);
         channel_data.hypo{1}.cont1_stats_chan.ConfidenceInterval = statistics.ConfidenceInterval.ci(chan,:);
         channel_data.hypo{2}.cont2_stats_chan.ConfidenceInterval = statistics.ConfidenceInterval.ci(chan,:);
         channel_data.hypo{3}.cont3_stats_chan.ConfidenceInterval = statistics.ConfidenceInterval.ci(chan,:);       
         %}
-        channelfilename = [channeldir strcat(sprintf('channel_%d',chan), f{testnb}, STIMBRdatafile)];
-     
-     %change contrast name if the significance is in high contrast in NDE -
-     %0DE
+        
+     %change contrast name and data if the significance is NDE50-
+     %0DE vs Blank condition
      if testnb == 1
-         channelfilename = [channeldir strcat(sprintf('channel_%d',chan), f{testnb +1}, STIMBRdatafile)];
+        channel_data.hypo{1}.cont1_dMUA_chan = channel_data.hypo{2}.cont2_dMUA_chan;
+        channel_data.hypo{2}.cont2_dMUA_chan = channel_data.hypo{1}.cont1_dMUA_chan;
+        channel_data.hypo{1}.cont1_power_chan = channel_data.hypo{2}.cont2_power_chan;
+        channel_data.hypo{2}.cont2_power_chan = channel_data.hypo{1}.cont1_power_chan;
+        channel_data.hypo{1}.cont1_stats_chan.significance = channel_data.hypo{2}.cont2_stats_chan.significance;
+        channel_data.hypo{2}.cont2_stats_chan.significance = channel_data.hypo{1}.cont1_stats_chan.significance;
+        channel_data.hypo{1}.cont1_stats_chan.pvalue = channel_data.hypo{2}.cont2_stats_chan.pvalue;
+        channel_data.hypo{2}.cont2_stats_chan.pvalue = channel_data.hypo{1}.cont1_stats_chan.pvalue;
+        
      end
-     save(channelfilename, 'channel_data');
+     STIMBRdatafile(strfind(STIMBRdatafile, '.mat')) = [];
+     channelfilename = [channeldir strcat(STIMBRdatafile, sprintf('channel_%d',chan))];
+     save(strcat(channelfilename, '.mat'), 'channel_data');
 
     end
     end
