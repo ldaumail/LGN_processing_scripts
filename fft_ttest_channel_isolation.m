@@ -102,6 +102,37 @@ fourhzpower(chan,tr) = power(chan,tr,index);
         channel_data.hypo{1}.cont1_stats_chan.pvalue = statistics.pvalues(chan,:);
         channel_data.hypo{2}.cont2_stats_chan.pvalue = statistics.pvalues(chan,:);
         channel_data.hypo{3}.cont3_stats_chan.pvalue = statistics.pvalues(chan,:);
+        channel_data.onsets = STIMdMUA.STIM.onsets;
+        channel_data.offsets = STIMdMUA.STIM.offsets;
+        channel_data.trstart = STIMdMUA.STIM.trstart;
+        channel_data.trend = STIMdMUA.STIM.trend;
+        channel_data.presnum = STIMdMUA.STIM.presnum;
+        channel_data.trial = STIMdMUA.STIM.trial;
+        channel_data.tilt = STIMdMUA.STIM.tilt;
+        channel_data.sf = STIMdMUA.STIM.sf;
+        channel_data.contrast = STIMdMUA.STIM.contrast;
+        channel_data.fixedc = STIMdMUA.STIM.fixedc;
+        channel_data.diameter = STIMdMUA.STIM.diameter;
+        channel_data.oridist = STIMdMUA.STIM.oridist;
+        channel_data.phase = STIMdMUA.STIM.phase;
+        channel_data.temporal_freq = STIMdMUA.STIM.temporal_freq;
+        channel_data.xpos = STIMdMUA.STIM.xpos;
+        channel_data.ypos = STIMdMUA.STIM.ypos;
+        if exist('STIMdMUA.STIM.fix_x')
+       channel_data.fix_x = STIMdMUA.STIM.fix_x;
+        end
+        if exist('STIMdMUA.STIM.fix_y')
+        channel_data.fix_y = STIMdMUA.STIM.fix_y;
+        end
+        channel_data.photo_on = STIMdMUA.STIM.photo_on;
+        channel_data.trg_photo = STIMdMUA.STIM.trg_photo;
+        channel_data.refresh = STIMdMUA.STIM.refresh;
+        channel_data.measured_refresh = STIMdMUA.STIM.measured_refresh;
+        channel_data.paradigm = STIMdMUA.STIM.paradigm;
+        channel_data.sdftr_chan = STIMdMUA.STIM.sdftr(:,chan,:);
+        channel_data.spk_bin_chan = STIMdMUA.STIM.spk_bin(:,chan,:);
+        channel_data.label_chan = STIMdMUA.STIM.label(chan);
+        
         %{
         channel_data.hypo{1}.cont1_stats_chan.ConfidenceInterval = statistics.ConfidenceInterval.ci(chan,:);
         channel_data.hypo{2}.cont2_stats_chan.ConfidenceInterval = statistics.ConfidenceInterval.ci(chan,:);
@@ -119,23 +150,20 @@ fourhzpower(chan,tr) = power(chan,tr,index);
         channel_data.hypo{2}.cont2_stats_chan.significance = channel_data.hypo{1}.cont1_stats_chan.significance;
         channel_data.hypo{1}.cont1_stats_chan.pvalue = channel_data.hypo{2}.cont2_stats_chan.pvalue;
         channel_data.hypo{2}.cont2_stats_chan.pvalue = channel_data.hypo{1}.cont1_stats_chan.pvalue;
-        
+        channel_data.fixedc = channel_data.contrast;
+        channel_data.contrast = channel_data.fixedc;
+       
      end
      STIMBRdatafile(strfind(STIMBRdatafile, '.mat')) = [];
      channelfilename = [channeldir strcat(STIMBRdatafile, sprintf('channel_%d',chan))];
      save(strcat(channelfilename, '.mat'), 'channel_data');
 
     end
-    end
-    
-    
-   
+    end 
 end
     
 %save all the power values of each session
 save(powerfilename, 'power');
-
-
 end
 
 
