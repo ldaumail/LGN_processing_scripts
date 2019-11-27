@@ -56,7 +56,7 @@ keepidx = [2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27
  namelist(1,1:length(sprintf('chan_%d',i))) = sprintf('chan_%d',i);
  data_peaks(i).namelist = all_pks;
 channelfilename = [channeldir filename];
-save(strcat(channelfilename, '.mat'), 'all_pks');
+%save(strcat(channelfilename, '.mat'), 'all_pks');
  end
  allfilename = [channeldir 'all_data_peaks'];
  save(strcat(allfilename, '.mat'), 'data_peaks');
@@ -312,12 +312,78 @@ log_p_layer(layer_idx) = logical(layer_idx);
  percentpk2pk3 = cntpk2pk3*100/length(all_pks(1,:));
  percentpk2pk3pk4 = cntpk2pk3pk4*100/length(all_pks(1,:));
  
+ %% compute proportion of significant adaptation per peak and proportion of neurons adapting for a certain amount of 
+%peak from peak 2 to 4
+
+channeldir = 'C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\individual_channels_peakadj2\';
+pvaluesdir = 'C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\individual_channels_peakadj2\lmer_results\';
+ pvalfilename = [pvaluesdir 'lmer_results.csv'];
+ pvalues = dlmread(pvalfilename, ',', 1,1);
+
+peakvals = load([channeldir 'all_data_peaks']);
+keepidx = [2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 30 ...
+     31 32 33 34 35 36 37 38 39 41 42 43 44 45 46 47 48 49 50 51 53 54 55 56 57 58 59 61 62 ...
+     64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81];
+ 
+ layer = {'K','M','P','K','K','K','M','P','P','','M','M','','','M','','','P','','M','','M','M','','P','M','','P', ...
+'P','','','K','P','M','M','M','P','','P','K','P','P','','P','P','M','','P','M','P','M','P','','P','M','M','P','','M','M','P','M', ...
+'','','M','M','M','P','M','M','M','M','P','P'};
+
+ layer_idx = find(strcmp(layer, 'K'));
+
+ f = {'DE0_NDE50','DE50_NDE0','DE50_NDE50'};
+ 
+ 
+
+ nyq = 15000;
+ all_locs = nan(4,length(layer_idx));
+ all_pks = nan(4,length(layer_idx));
+ all_mean_data = nan(4, length(layer_idx));
+
+  
+ cntpk2 = 0;
+ cntpk3 = 0;
+ cntpk4 = 0;
+ cntpk2pk3 = 0;
+ cntpk2pk3pk4 = 0;
+ 
+  for nunit = 1:length(layer_idx)
+ mean_data = nanmean(peakvals.data_peaks(layer_idx(nunit)).namelist,2);
+   
+   all_mean_data(:,nunit) = mean_data;
+
+     if all_mean_data(2,nunit) < all_mean_data(1,nunit) && pvalues(layer_idx(nunit),2) < .05
+         cntpk2 = cntpk2 +1;
+     end
+     if all_mean_data(3,nunit) < all_mean_data(1,nunit) && pvalues(layer_idx(nunit),3) < .05
+         cntpk3 = cntpk3 +1;
+     end
+     if all_mean_data(4,nunit) < all_mean_data(1,nunit) && pvalues(layer_idx(nunit),4) < .05
+         cntpk4 = cntpk4 +1;
+     end
+     if all_mean_data(2,nunit) < all_mean_data(1,nunit) && pvalues(layer_idx(nunit),2) < .05 && ...
+             all_mean_data(3,nunit) < all_mean_data(1,nunit) && pvalues(layer_idx(nunit),3) < .05
+         cntpk2pk3 = cntpk2pk3 +1;
+     end
+     if all_mean_data(2,nunit) < all_mean_data(1,nunit) && pvalues(layer_idx(nunit),2) < .05 && ...
+             all_mean_data(3,nunit) < all_mean_data(1,nunit) && pvalues(layer_idx(nunit),3) < .05 ...
+             && all_mean_data(4,nunit) < all_mean_data(1,nunit) && pvalues(layer_idx(nunit),4) < .05
+         cntpk2pk3pk4 = cntpk2pk3pk4 +1;
+     end
+ end
+ 
+ percentpk2 = cntpk2*100/length(all_pks(1,:));
+ percentpk3 = cntpk3*100/length(all_pks(1,:)); 
+ percentpk4 = cntpk4*100/length(all_pks(1,:));
+ percentpk2pk3 = cntpk2pk3*100/length(all_pks(1,:));
+ percentpk2pk3pk4 = cntpk2pk3pk4*100/length(all_pks(1,:));
+ 
  %% Replicate the analysis on the troughs instead of the peaks
  
  gooddatadir = 'C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\';
 channelfilename = [gooddatadir 'good_single_units_data_4bmpmore']; 
 data_file = load(channelfilename);
-channeldir = 'C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\individual_channels_troughadj\';
+channeldir = 'C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\individual_channels_troughadj2\';
 
 
 keepidx = [2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 30 ...
@@ -381,7 +447,7 @@ end
  namelist(1,1:length(sprintf('chan_%d',i))) = sprintf('chan_%d',i);
  data_troughs(i).namelist = all_trghs;
 channelfilename = [channeldir filename];
-save(strcat(channelfilename, '.mat'), 'all_trghs');
+%save(strcat(channelfilename, '.mat'), 'all_trghs');
  end
  allfilename = [channeldir 'all_data_troughs'];
  save(strcat(allfilename, '.mat'), 'data_troughs');
@@ -466,9 +532,9 @@ end
 
 gooddatadir = 'C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\';
 channelfilename = [gooddatadir 'good_single_units_data_4bmpmore']; 
-channeldir = 'C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\individual_channels_troughadj\';
+channeldir = 'C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\individual_channels_troughadj2\';
 data_file = load(channelfilename);
-pvaluesdir = 'C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\individual_channels_troughadj\lmer_results\';
+pvaluesdir = 'C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\individual_channels_troughadj2\lmer_results\';
  pvalfilename = [pvaluesdir 'lmer_results.csv'];
  pvalues = dlmread(pvalfilename, ',', 1,1);
    % only apply this line once (exclude 26, 38,64 with indices 26, 38 and 57
@@ -550,4 +616,65 @@ keepidx2 = [2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 27 3
  percenttrgh2 = cnttrgh2*100/length(all_trghs(1,:));
  percenttrgh3 = cnttrgh3*100/length(all_trghs(1,:)); 
  percenttrgh2trgh3 = cnttrgh2trgh3*100/length(all_trghs(1,:));
+
+%% compute proportion of significant adaptation per trough and proportion of neurons adapting for a certain amount of 
+%troughs from trough 2 to 4
+
+ 
+channeldir = 'C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\individual_channels_troughadj2\';
+
+pvaluesdir = 'C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\individual_channels_troughadj2\lmer_results\';
+ pvalfilename = [pvaluesdir 'lmer_results.csv'];
+ pvalues = dlmread(pvalfilename, ',', 1,1);
+ 
+troughsvals = load([channeldir 'all_data_troughs']);
+
+keepidx = [2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 30 ...
+     31 32 33 34 35 36 37 38 39 41 42 43 44 45 46 47 48 49 50 51 53 54 55 56 57 58 59 61 62 ...
+     64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81];
+ 
+ layer = {'K','M','P','K','K','K','M','P','P','','M','M','','','M','','','P','','M','','M','M','','P','M','','P', ...
+'P','','','K','P','M','M','M','P','','P','K','P','P','','P','P','M','','P','M','P','M','P','','P','M','M','P','','M','M','P','M', ...
+'','','M','M','M','P','M','M','M','M','P','P'};
+
+
+ layer_idx = find(strcmp(layer, 'M'));
+
+
+
+ f = {'DE0_NDE50','DE50_NDE0','DE50_NDE50'};
+ 
+ 
+
+ nyq = 15000;
+
+ all_mean_data = nan(3,length(layer_idx));
+ cnttrgh2 = 0;
+ cnttrgh3 = 0;
+ cnttrgh2trgh3 = 0;
+ 
+ for nunit = 1:length(layer_idx)
+ 
+ mean_data = nanmean(troughsvals.data_troughs(layer_idx(nunit)).namelist,2);
+   
+   all_mean_data(:,nunit) = (mean_data);
+
+
+     if all_mean_data(2,nunit) < all_mean_data(1,nunit) && pvalues(layer_idx(nunit),2) < .05
+         cnttrgh2 = cnttrgh2 +1;
+     end
+     if all_mean_data(3,nunit) < all_mean_data(1,nunit) && pvalues(layer_idx(nunit),3) < .05
+         cnttrgh3 = cnttrgh3 +1;
+     end
+    
+     if all_mean_data(2,nunit) < all_mean_data(1,nunit) && pvalues(layer_idx(nunit),2) < .05 && ...
+             all_mean_data(3,nunit) < all_mean_data(1,nunit) && pvalues(layer_idx(nunit),3) < .05
+         cnttrgh2trgh3 = cnttrgh2trgh3 +1;
+     end
+     
+ end
+ 
+ percenttrgh2 = cnttrgh2*100/length(all_mean_data(1,:));
+ percenttrgh3 = cnttrgh3*100/length(all_mean_data(1,:)); 
+ percenttrgh2trgh3 = cnttrgh2trgh3*100/length(all_mean_data(1,:));
 
