@@ -29,10 +29,10 @@ clear i ;
    lpc       = 100; %low pass cutoff
    lWn       = lpc/nyq;
    [bwb,bwa] = butter(4,lWn,'low');
-   lpdMUA      = filtfilt(bwb,bwa, norm_mean_data(:,i));
+   lpdSUA      = filtfilt(bwb,bwa, norm_mean_data(:,i));
    
     sp = subplot(length(1:12), 2, idx(i));
-    plot(xabs, lpdMUA)
+    plot(xabs, lpdSUA)
     hold on
     plot([0 0], ylim,'k')
     hold on
@@ -46,7 +46,7 @@ clear i ;
    end
    pvalue = data_file.good_data(chan+i-1).channel_data.hypo{1,2}.cont_stats.pvalue;
       %ylim([-2 2]); 
-      ylabelh = text(max(xabs), mean(lpdMUA,1), strcat(num2str(keepidx(chan+i-1)),' | ', num2str(pvalue)),'HorizontalAlignment','left','FontName', 'Arial','FontSize', 10);
+      ylabelh = text(max(xabs), mean(lpdSUA,1), strcat(num2str(keepidx(chan+i-1)),' | ', num2str(pvalue)),'HorizontalAlignment','left','FontName', 'Arial','FontSize', 10);
       
       
       set(gca, 'linewidth',2)
@@ -59,21 +59,21 @@ clear i ;
     xlabel('Time from -50ms from stimulus onset (ms)')
    set(gcf,'Units','inches') 
    set(gcf,'position',[1 1 8.5 11])
-    filename = strcat('C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\plots\',strcat(f{2}, sprintf('_%d_better_raw_data_pvalue05', keepidx(chan))));
+    filename = strcat('C:\Users\maier\Documents\LGN_data\single_units\power_channels\good_single_units_data_4bumps_more\plots\',strcat(f{2}, sprintf('_%d_better_raw_data_pvalue05', keepidx(chan))));
    saveas(gcf, strcat(filename, '.png'));
 
 end
 
  %% Plot the data time locked to the first peak 
    h = figure;
-xabs = -50:1301;
-x = 1:1702;
+xabs = 1:1302;
+%x = 1:1702;
 nyq = 15000;
 channum = 1: length(data_file.good_data);
  
 raw_mean_bs = nan(length(xabs), length(channum));
-filtered_dMUA = nan(length(xabs), length(channum));
-all_locsdMUA_filtered = nan(length(channum),1);
+filtered_dSUA = nan(length(xabs), length(channum));
+all_locsdSUA_filtered = nan(length(channum),1);
 up_dist = nan(1, length(channum));
 
 pvalues = nan(1,length(channum));
@@ -81,7 +81,7 @@ mean_linreg = nan(2,1);
 clear i ;
  for i = 1:length(channum)
      
-   mean_data = mean(squeeze(data_file.good_data(i).channel_data.hypo{1,2}.cont_su(550:1901,:,:)),2);
+   mean_data = mean(squeeze(data_file.good_data(i).channel_data.hypo{1,2}.cont_su(600:1901,:,:)),2);
    
    raw_mean_bs(:,i) = mean_data;
    
@@ -89,7 +89,7 @@ clear i ;
    lWn       = lpc/nyq;
    [bwb,bwa] = butter(4,lWn,'low');
    %cdata = ;
-   lpdMUA      = filtfilt(bwb,bwa, raw_mean_bs(:,i));
+   lpdSUA      = filtfilt(bwb,bwa, raw_mean_bs(:,i));
   
    %{
    [pkssu, locssu] = findpeaks(lpdMUA(50:1201));
@@ -98,34 +98,42 @@ plot(x, lpdMUA)
 hold on
 %}
     
- filtered_dMUA(:,i) = lpdMUA;
- %find peaks for every channel
- [pksdMUA_filtered, locsdMUA_filtered] = findpeaks(filtered_dMUA(50:1201,i));
+ filtered_dSUA(:,i) = lpdSUA;
+ %find peaks for every channel that is not accounting for any maxima in the
+ %beginning of the trace
+  for len = 30:550
+            if filtered_dSUA(len,i) < filtered_dSUA(len+1,i)
+   locsdSUA_filtered = findpeaks(filtered_dSUA(len:1201,i));
+        break
+            end
+  end
+         
+
  %store first peak location
- all_locsdMUA_filtered(i) = locsdMUA_filtered(1);
+ all_locsdSUA_filtered(i) = locsdSUA_filtered.loc(1)+len;
  %compute the distance between the first peak and stimulus onset and store  
  %in a matrix
- up_dist(:,i)= length(xabs)- all_locsdMUA_filtered(i);
+ up_dist(:,i)= length(xabs)- all_locsdSUA_filtered(i);
  end
  
  %get the max distance 
- max_low_dist = max(all_locsdMUA_filtered);
+ max_low_dist = max(all_locsdSUA_filtered);
  %create new matrix with the length(max(d)+max(xabs - d))
  new_dist = max_low_dist + max(up_dist);
  fp_locked_data = nan(new_dist,length(channum));
  for n = 1:length(channum)
- lower_bound =max_low_dist-all_locsdMUA_filtered(n)+1;
- upper_bound =max_low_dist-all_locsdMUA_filtered(n)+length(xabs);
+ lower_bound =max_low_dist-all_locsdSUA_filtered(n)+1;
+ upper_bound =max_low_dist-all_locsdSUA_filtered(n)+length(xabs);
  
- fp_locked_data(lower_bound:upper_bound,n) = filtered_dMUA(:,n);
-  
+ fp_locked_data(lower_bound:upper_bound,n) = filtered_dSUA(:,n);
+ x =1:length(fp_locked_data(:,1)); 
  plot(x, fp_locked_data(:,n))
  hold on
  end
  
   mean_filtered = mean(fp_locked_data, 2);
- [pksdMUA_mean, locsdMUA_mean] = findpeaks(mean_filtered(1:1586));
- x1 = 1:1702;
+ locsdSUA_mean = findpeaks(mean_filtered(1:1586));
+ x1 = 1:length(mean_filtered);
  plot(x1,mean_filtered,'LineWidth',1, 'Color', 'black')
 txt1 = 'mean';
 text(x1(400), mean_filtered(400), txt1)
@@ -133,8 +141,8 @@ text(x1(400), mean_filtered(400), txt1)
  
  median = nanmedian(fp_locked_data, 2);
  median_filtered      = filtfilt(bwb,bwa, median);
- [pksdMUA_median, locsdMUA_median] = findpeaks(median_filtered(1:1586));
- x2 = 1:1702; 
+ locsdMUA_median = findpeaks(median_filtered(1:1586));
+ x2 = 1:length(mean_filtered); 
  plot(x2,median_filtered,'LineWidth',1, 'Color', 'red')
 
 txt2 = 'median';
@@ -147,40 +155,52 @@ txt2 = 'median';
     
  %% looking at each bump
    
-xabs = -100:1301;
+xabs = 0:1302;
 xabs2 = 1:4;
 nyq = 15000;
 channum = 1: length(data_file.good_data);
  
 norm_mean_bs = nan(length(xabs), length(channum));
-filtered_dMUA = nan(length(xabs), length(channum));
+filtered_dSUA = nan(length(xabs), length(channum));
 all_pksdMUA = nan(4, length(channum));
 all_locsdMUA = nan(4, length(channum));
 
 clear i ;
  for i = 1:length(channum)
     
-   mean_data = mean(squeeze(data_file.good_data(i).channel_data.hypo{1,2}.cont_su(400:1901,:,:)),2);
-   bsl = mean(mean_data(1:200));
-   norm_mean_bs(:,i) = mean_data(101:end) - bsl;
+   mean_data = mean(squeeze(data_file.good_data(i).channel_data.hypo{1,2}.cont_su(550:1901,:,:)),2);
+   bsl = mean(mean_data(1:50));
+   norm_mean_bs(:,i) = mean_data(50:end) - bsl;
    
    lpc       = 100; %low pass cutoff
    lWn       = lpc/nyq;
    [bwb,bwa] = butter(4,lWn,'low');
    %cdata = ;
-   lpdMUA      = filtfilt(bwb,bwa, norm_mean_bs(:,i));
-   filtered_dMUA(:,i) = lpdMUA; 
- 
-[pksdMUA, locsdMUA] = findpeaks(lpdMUA(100:1251));
-if i ~= 10 && i ~= 26 && i ~= 39 && i ~= 64
-all_pksdMUA(:,i) = pksdMUA(1:4);
-all_locsdMUA(:,i) = locsdMUA(1:4);
+   lpdSUA      = filtfilt(bwb,bwa, norm_mean_bs(:,i));
+   filtered_dSUA(:,i) = lpdSUA; 
+ for len = 30:550
+            if lpdSUA(len) < lpdSUA(len+1)
+   locs = findpeaks(lpdSUA(len:1200));
+        break
+            end
+  end
+         
+         if length(locs.loc) >= 4
+             %adjust location to the first data point of lpsu (+len),
+    lpsulocs = locs.loc(1:4) + len;
+   all_pksdSUA(:,i) = lpdSUA(lpsulocs(1:4));
+   all_locsdMUA(:,i) = lpsulocs(1:4);
+         end 
+%locsdSUA = findpeaks(lpdSUA(100:1251));
+%if i ~= 10 && i ~= 26 && i ~= 64 %&& i ~= 39
+
+
 end   
- end
+ 
   h = figure;
 x = [1 2 3 4];% {'peak1', 'peak2','peak3', 'peak4'};
- boxplot(all_pksdMUA', x, 'Labels',  {'peak1', 'peak2','peak3', 'peak4'} )
- ylim([0 100])
+ boxplot(all_pksdSUA', x, 'Labels',  {'peak1', 'peak2','peak3', 'peak4'} )
+ ylim([-20 100])
  title({'DE50_NDE0_su', 'peaks distributions'}, 'Interpreter', 'none')
  ylabel('Spike rate (spike/sec)') 
  xlabel('peak number')
@@ -210,14 +230,14 @@ log_p_layer(layer_idx) = logical(layer_idx);
  
 %% Plot the data time locked to the first peak according to the layer
   
-xabs = -100:1301;
+xabs = 0:1301;
 %x = 1:1702;
 nyq = 15000;
 channum = 1: length(data_file.good_data);
  
 raw_mean_bs = nan(length(xabs), length(channum));
-filtered_dMUA = nan(length(xabs), length(channum));
-all_locsdMUA_filtered = nan(length(channum),1);
+filtered_dSUA = nan(length(xabs), length(channum));
+all_locsdSUA_filtered = nan(length(channum),1);
 up_dist = nan(1, length(channum));
 
 pvalues = nan(1,length(channum));
@@ -226,15 +246,15 @@ clear i ;
  for i = 1:length(channum)
      
      if log_p_layer(i) == 1
-   mean_data = mean(squeeze(data_file.good_data(i).channel_data.hypo{1,2}.cont_su(400:1901,:,:)),2);
-   bsl = mean(mean_data(1:200));
-   raw_mean_bs(:,i) = mean_data(101:end)- bsl;
+   mean_data = mean(squeeze(data_file.good_data(i).channel_data.hypo{1,2}.cont_su(550:1901,:,:)),2);
+   bsl = mean(mean_data(1:50));
+   raw_mean_bs(:,i) = mean_data(51:end)- bsl;
    
    lpc       = 100; %low pass cutoff
    lWn       = lpc/nyq;
    [bwb,bwa] = butter(4,lWn,'low');
    %cdata = ;
-   lpdMUA      = filtfilt(bwb,bwa, raw_mean_bs(:,i));
+   lpdSUA      = filtfilt(bwb,bwa, raw_mean_bs(:,i));
   
    %{
    [pkssu, locssu] = findpeaks(lpdMUA(50:1201));
@@ -243,28 +263,36 @@ plot(x, lpdMUA)
 hold on
 %}
     
- filtered_dMUA(:,i) = lpdMUA;
+ filtered_dSUA(:,i) = lpdSUA;
  %find peaks for every channel
- [pksdMUA_filtered, locsdMUA_filtered] = findpeaks(filtered_dMUA(100:1251,i));
+  for len = 30:550
+            if filtered_dSUA(len,i) < filtered_dSUA(len+1,i)
+   locsdSUA_filtered = findpeaks(filtered_dSUA(len:1251,i));
+        break
+            end
+  end
+         
+
  %store first peak location
- all_locsdMUA_filtered(i) = locsdMUA_filtered(1);
- %compute the distance between the first peak and the last datapoint and store  
+ all_locsdSUA_filtered(i) = locsdSUA_filtered.loc(1)+len;
+ 
+  %compute the distance between the first peak and the last datapoint and store  
  %in a matrix
- up_dist(:,i)= length(xabs)- all_locsdMUA_filtered(i);
+ up_dist(:,i)= length(xabs)- all_locsdSUA_filtered(i);
      end
  end
  
  %get the max distance between the first peak and the stimulus onset
- max_low_dist = max(all_locsdMUA_filtered);
+ max_low_dist = max(all_locsdSUA_filtered);
  %create new matrix with the length(max(d)+max(xabs - d))
  new_dist = max_low_dist + max(up_dist);
  fp_locked_data = nan(new_dist,length(layer_idx));
  for n = 1:length(layer_idx)
     
- lower_bound =max_low_dist-all_locsdMUA_filtered(layer_idx(n))+1;
- upper_bound =max_low_dist-all_locsdMUA_filtered(layer_idx(n))+length(xabs);
+ lower_bound =max_low_dist-all_locsdSUA_filtered(layer_idx(n))+1;
+ upper_bound =max_low_dist-all_locsdSUA_filtered(layer_idx(n))+length(xabs);
  
- fp_locked_data(lower_bound:upper_bound,n) = filtered_dMUA(:,layer_idx(n));
+ fp_locked_data(lower_bound:upper_bound,n) = filtered_dSUA(:,layer_idx(n));
  x = 1:length(fp_locked_data(:,1));
  plot(x, fp_locked_data(:,n))
  hold on
@@ -272,8 +300,8 @@ hold on
  end
  h = figure();
   mean_filtered = mean(fp_locked_data, 2);
- [pksdMUA_mean, locsdMUA_mean] = findpeaks(mean_filtered(1:end));
- x1 = -locsdMUA_mean(1)+1:length(mean_filtered)-locsdMUA_mean(1);
+ locsdSUA_mean = findpeaks(mean_filtered(1:end));
+ x1 = -locsdSUA_mean.loc(1)+1:length(mean_filtered)-locsdSUA_mean.loc(1);
  plot(x1,mean_filtered,'LineWidth',1, 'Color', 'black')
 txt1 = 'mean';
 text(x1(400), mean_filtered(400), txt1)
@@ -289,7 +317,7 @@ text(x1(400), mean_filtered(400), txt1)
  %{
  median = nanmedian(fp_locked_data, 2);
  median_filtered      = filtfilt(bwb,bwa, median);
- [pksdMUA_median, locsdMUA_median] = findpeaks(median_filtered(1:end));
+ locsdMUA_median = findpeaks(median_filtered(1:end));
  x2 = 1:length(median_filtered); 
  plot(x2,median_filtered,'LineWidth',1, 'Color', 'red')
 
@@ -309,13 +337,13 @@ layer_idx = find(strcmp(layer, 'K'));
 log_p_layer = zeros(length(layer),1);
 log_p_layer(layer_idx) = logical(layer_idx);
  
-xabs = -100:1301;
+xabs = 0:1301;
 nyq = 15000;
 channum = 1: length(data_file.good_data);
  
 raw_mean_bs = nan(length(xabs), length(channum));
-filtered_dMUA = nan(length(xabs), length(channum));
-all_locsdMUA_filtered = nan(length(channum),1);
+filtered_dSUA = nan(length(xabs), length(channum));
+all_locsdSUA_filtered = nan(length(channum),1);
 up_dist = nan(1, length(channum));
 
 pvalues = nan(1,length(channum));
@@ -324,36 +352,45 @@ clear i ;
  for i = 1:length(channum)
      
      if log_p_layer(i) == 1
-   mean_data = mean(squeeze(data_file.good_data(i).channel_data.hypo{1,2}.cont_su(400:1901,:,:)),2);
-   bsl = mean(mean_data(1:200));
-   raw_mean_bs(:,i) = mean_data(101:end)- bsl;
+   mean_data = mean(squeeze(data_file.good_data(i).channel_data.hypo{1,2}.cont_su(550:1901,:,:)),2);
+   bsl = mean(mean_data(1:50));
+   raw_mean_bs(:,i) = mean_data(51:end)- bsl;
    
    lpc       = 100; %low pass cutoff
    lWn       = lpc/nyq;
    [bwb,bwa] = butter(4,lWn,'low');
-   lpdMUA      = filtfilt(bwb,bwa, raw_mean_bs(:,i));
+   lpdSUA      = filtfilt(bwb,bwa, raw_mean_bs(:,i));
     
- filtered_dMUA(:,i) = lpdMUA;
+ filtered_dSUA(:,i) = lpdSUA;
  %find peaks for every channel
- [pksdMUA_filtered, locsdMUA_filtered] = findpeaks(filtered_dMUA(100:1251,i));
+ %find peaks for every channel
+  for len = 30:550
+            if filtered_dSUA(len,i) < filtered_dSUA(len+1,i)
+   locsdSUA_filtered = findpeaks(filtered_dSUA(len:1251,i));
+        break
+            end
+  end
+         
+
  %store first peak location
- all_locsdMUA_filtered(i) = locsdMUA_filtered(1);
+ all_locsdSUA_filtered(i) = locsdSUA_filtered.loc(1)+len;
+ 
  %compute the distance between the first peak and the last datapoint and store  
  %in a matrix
- up_dist(:,i)= length(xabs)- all_locsdMUA_filtered(i);
+ up_dist(:,i)= length(xabs)- all_locsdSUA_filtered(i);
      end
  end
  
  %get the max distance between the first peak and the stimulus onset
- max_low_dist = max(all_locsdMUA_filtered);
+ max_low_dist = max(all_locsdSUA_filtered);
  %create new matrix with the length(max(d)+max(xabs - d))
  new_dist = max_low_dist + max(up_dist);
  fp_locked_data = nan(new_dist,length(layer_idx));
  for n = 1:length(layer_idx)
     
- lower_bound =max_low_dist-all_locsdMUA_filtered(layer_idx(n))+1;
- upper_bound =max_low_dist-all_locsdMUA_filtered(layer_idx(n))+length(xabs);
- fp_locked_data(lower_bound:upper_bound,n) = filtered_dMUA(:,layer_idx(n));
+ lower_bound =max_low_dist-all_locsdSUA_filtered(layer_idx(n))+1;
+ upper_bound =max_low_dist-all_locsdSUA_filtered(layer_idx(n))+length(xabs);
+ fp_locked_data(lower_bound:upper_bound,n) = filtered_dSUA(:,layer_idx(n));
  
  %{
  x = 1:length(fp_locked_data(:,1));
@@ -363,17 +400,17 @@ clear i ;
  end
  h = figure();
   mean_filtered = mean(fp_locked_data, 2);
- [pksdMUA_mean, locsdMUA_mean] = findpeaks(mean_filtered(1:end));
- x1 = -locsdMUA_mean(1)+1:length(mean_filtered)-locsdMUA_mean(1);
+ locsdSUA_mean = findpeaks(mean_filtered(1:end));
+ x1 = -locsdSUA_mean.loc(1)+1:length(mean_filtered)-locsdSUA_mean.loc(1);
  plot(x1,mean_filtered,'LineWidth',1, 'Color', 'black')
  hold on
-  linreg1 = fitlm(locsdMUA_mean(1:3), pksdMUA_mean(1:3), 'y ~ x1');
+  linreg1 = fitlm(locsdSUA_mean.loc(1:3), mean_filtered(locsdSUA_mean.loc(1:3)), 'y ~ x1');
    linreg_coeff1 = table2array(linreg1.Coefficients(1:2,1));
    pvalues1 = table2array(linreg1.Coefficients(2,4));
-   ylinreg1 = linreg_coeff1(2,1) .* locsdMUA_mean + linreg_coeff1(1,1);
+   ylinreg1 = linreg_coeff1(2,1) .* locsdSUA_mean.loc + linreg_coeff1(1,1);
  
    hold on
-  xreg1 =locsdMUA_mean - locsdMUA_mean(1);
+  xreg1 =locsdSUA_mean.loc - locsdSUA_mean.loc(1);
   plot(xreg1, ylinreg1, 'Color', 'black');
   txtreg1 = ['y'];%, pvalue =' num2str(pvalues1)];
   text(xreg1(1), ylinreg1(1), txtreg1)
@@ -400,14 +437,14 @@ log_p_layer = zeros(length(layer),1);
 log_p_layer(layer_idx) = logical(layer_idx);
 
 
-xabs = -100:1301;
+xabs = 0:1301;
 %x = 1:1702;
 nyq = 15000;
 channum = 1: length(data_file.good_data);
  
 raw_mean_bs = nan(length(xabs), length(channum));
-filtered_dMUA = nan(length(xabs), length(channum));
-all_locsdMUA_filtered = nan(length(channum),1);
+filtered_dSUA = nan(length(xabs), length(channum));
+all_locsdSUA_filtered = nan(length(channum),1);
 up_dist = nan(1, length(channum));
 
 pvalues = nan(1,length(channum));
@@ -416,15 +453,15 @@ clear i ;
  for i = 1:length(channum)
      
      if log_p_layer(i) == 1
-   mean_data = mean(squeeze(data_file.good_data(i).channel_data.hypo{1,2}.cont_su(400:1901,:,:)),2);
-   bsl = mean(mean_data(1:200));
-   raw_mean_bs(:,i) = mean_data(101:end)- bsl;
+   mean_data = mean(squeeze(data_file.good_data(i).channel_data.hypo{1,2}.cont_su(550:1901,:,:)),2);
+   bsl = mean(mean_data(1:50));
+   raw_mean_bs(:,i) = mean_data(51:end)- bsl;
    
    lpc       = 100; %low pass cutoff
    lWn       = lpc/nyq;
    [bwb,bwa] = butter(4,lWn,'low');
    %cdata = ;
-   lpdMUA      = filtfilt(bwb,bwa, raw_mean_bs(:,i));
+   lpdSUA      = filtfilt(bwb,bwa, raw_mean_bs(:,i));
   
    %{
    [pkssu, locssu] = findpeaks(lpdMUA(50:1201));
@@ -433,30 +470,38 @@ plot(x, lpdMUA)
 hold on
 %}
     
- filtered_dMUA(:,i) = lpdMUA;
+ filtered_dSUA(:,i) = lpdSUA;
  %find peaks for every channel
- [pksdMUA_filtered, locsdMUA_filtered] = findpeaks(filtered_dMUA(100:1251,i));
+  %find peaks for every channel
+  for len = 30:550
+            if filtered_dSUA(len,i) < filtered_dSUA(len+1,i)
+   locsdSUA_filtered = findpeaks(filtered_dSUA(len:1251,i));
+        break
+            end
+  end
+         
+
  %store first peak location
- if i~=26 
- all_locsdMUA_filtered(i) = locsdMUA_filtered(4);
+ all_locsdSUA_filtered(i) = locsdSUA_filtered.loc(4)+len;
+ 
  %compute the distance between the first peak and the last datapoint and store  
  %in a matrix
- up_dist(:,i)= length(xabs)- all_locsdMUA_filtered(i);
- end
-     end
- end
+ up_dist(:,i)= length(xabs)- all_locsdSUA_filtered(i);
+    end
+end
+
  
  %get the max distance between the first peak and the stimulus onset
- max_low_dist = max(all_locsdMUA_filtered);
+ max_low_dist = max(all_locsdSUA_filtered);
  %create new matrix with the length(max(d)+max(xabs - d))
  new_dist = max_low_dist + max(up_dist);
  fp_locked_data = nan(new_dist,length(layer_idx));
  for n = 1:length(layer_idx)
-    if ~isnan(all_locsdMUA_filtered(layer_idx(n)))
- lower_bound =max_low_dist-all_locsdMUA_filtered(layer_idx(n))+1;
- upper_bound =max_low_dist-all_locsdMUA_filtered(layer_idx(n))+length(xabs);
+    if ~isnan(all_locsdSUA_filtered(layer_idx(n)))
+ lower_bound =max_low_dist-all_locsdSUA_filtered(layer_idx(n))+1;
+ upper_bound =max_low_dist-all_locsdSUA_filtered(layer_idx(n))+length(xabs);
  
- fp_locked_data(lower_bound:upper_bound,n) = filtered_dMUA(:,layer_idx(n));
+ fp_locked_data(lower_bound:upper_bound,n) = filtered_dSUA(:,layer_idx(n));
  x = 1:length(fp_locked_data(:,1));
  plot(x, fp_locked_data(:,n))
  hold on
@@ -471,8 +516,8 @@ hold on
  end
 
   mean_filtered = mean(fp_locked_data, 2);
- [pksdMUA_mean, locsdMUA_mean] = findpeaks(mean_filtered);
- x1 = -locsdMUA_mean(4)+1:length(mean_filtered)-locsdMUA_mean(4);
+ locsdSUA_mean = findpeaks(mean_filtered);
+ x1 = -locsdSUA_mean.loc(4)+1:length(mean_filtered)-locsdSUA_mean.loc(4);
 
  h = figure();
  
@@ -506,8 +551,8 @@ nyq = 15000;
 channum = 1: length(log_p_layer);
  
 raw_mean_bs = nan(length(xabs), length(channum));
-filtered_dMUA = nan(length(xabs), length(channum),4);
-all_locsdMUA_filtered = nan(length(channum),4);
+filtered_dSUA = nan(length(xabs), length(channum),4);
+all_locsdSUA_filtered = nan(length(channum),4);
 up_dist = nan(length(channum), 4);
 
 pvalues = nan(1,length(channum));
@@ -518,31 +563,47 @@ for peakalign = 1:4
  for i = 1:length(log_p_layer)
      
      if log_p_layer(i) == 1
-   mean_data = mean(squeeze(data_file.good_data(i).channel_data.hypo{1,2}.cont_su(400:1901,:,:)),2);
-   bsl = mean(mean_data(1:200));
-   raw_mean_bs(:,i) = mean_data(101:end)- bsl;
+   mean_data = mean(squeeze(data_file.good_data(i).channel_data.hypo{1,2}.cont_su(500:1901,:,:)),2);
+   bsl = mean(mean_data(100:200));
+   raw_mean_bs(:,i) = mean_data(1:end)- bsl;
    
    lpc       = 100; %low pass cutoff
    lWn       = lpc/nyq;
    [bwb,bwa] = butter(4,lWn,'low');
-   lpdMUA      = filtfilt(bwb,bwa, raw_mean_bs(:,i));
+   lpdSUA      = filtfilt(bwb,bwa, raw_mean_bs(:,i));
   
     
- filtered_dMUA(:,i, peakalign) = lpdMUA;
+ filtered_dSUA(:,i, peakalign) = lpdSUA;
  %find peaks for every channel
- [pksdMUA_filtered, locsdMUA_filtered] = findpeaks(filtered_dMUA(100:1251,i, peakalign));
+ %[pksdMUA_filtered, locsdSUA_filtered] = findpeaks(filtered_dSUA(100:1251,i, peakalign));
  %store first peak location
-      if i~=26 
- all_locsdMUA_filtered(i, peakalign) = locsdMUA_filtered(peakalign);
+ %     if i~=26 
+ %all_locsdSUA_filtered(i, peakalign) = locsdSUA_filtered(peakalign);
+ 
+  %find peaks for every channel
+  for len = 30:550
+            if filtered_dSUA(len,i) < filtered_dSUA(len+1,i)
+   locsdSUA_filtered = findpeaks(filtered_dSUA(len:1251,i));
+        break
+            end
+  end
+         
+
+ %store first peak location
+ if length(locsdSUA_filtered.loc) >= 4
+ all_locsdSUA_filtered(i, peakalign) = locsdSUA_filtered.loc(peakalign)+len;
+ 
  %compute the distance between the peakalign and the last datapoint and store  
  %in a matrix
- up_dist(i,peakalign)= length(xabs)- all_locsdMUA_filtered(i, peakalign);
-      end
-     end
+ up_dist(i,peakalign)= length(xabs)- all_locsdSUA_filtered(i, peakalign);
+ 
  end
-end
+      end
+ end
+ end
+
  %get the max distance between the peakalign and the stimulus onset
- max_low_dist = max(all_locsdMUA_filtered, [], 'all');
+ max_low_dist = max(all_locsdSUA_filtered, [], 'all');
  %create new matrix with the length(max(d)+max(xabs - d))
  new_dist = max_low_dist + max(up_dist, [], 'all');
  fp_locked_data = nan(new_dist,length(layer_idx),4);
@@ -551,11 +612,11 @@ end
 for peakalign = 1:4 
    clear n
  for n = 1:length(fp_locked_data(1,:,1))
-    if ~isnan(all_locsdMUA_filtered(layer_idx(n),peakalign))
- lower_bound =max_low_dist-all_locsdMUA_filtered(layer_idx(n),peakalign)+1;
- upper_bound =max_low_dist-all_locsdMUA_filtered(layer_idx(n),peakalign)+length(xabs);
+    if ~isnan(all_locsdSUA_filtered(layer_idx(n),peakalign))
+ lower_bound =max_low_dist-all_locsdSUA_filtered(layer_idx(n),peakalign)+1;
+ upper_bound =max_low_dist-all_locsdSUA_filtered(layer_idx(n),peakalign)+length(xabs);
  
- fp_locked_data(lower_bound:upper_bound,n, peakalign) = filtered_dMUA(:,layer_idx(n), peakalign);
+ fp_locked_data(lower_bound:upper_bound,n, peakalign) = filtered_dSUA(:,layer_idx(n), peakalign);
 
  %{
  x = 1:length(fp_locked_data(:,1));
@@ -576,14 +637,14 @@ clear m;
 
 
   mean_filtered = mean(fp_locked_data(:,:,peakalign), 2);
- [pksdMUA_mean, locsdMUA_mean] = findpeaks(mean_filtered);
- x1 = -locsdMUA_mean(peakalign)+1:length(mean_filtered)-locsdMUA_mean(peakalign);
+ locsdSUA_mean = findpeaks(mean_filtered);
+ x1 = -locsdSUA_mean.loc(peakalign)+1:length(mean_filtered)-locsdSUA_mean.loc(peakalign);
 
  h = figure();
  
  plot(x1,mean_filtered,'LineWidth',1, 'Color', 'black')
-txt1 = 'mean';
-text(x1(400), mean_filtered(400), txt1)
+%txt1 = 'mean';
+%text(x1(400), mean_filtered(400), txt1)
  hold on
  %{
  ci_low = mean_filtered - std(fp_locked_data,0,2);
@@ -603,28 +664,306 @@ text(x1(400), mean_filtered(400), txt1)
 
 end
 
-%% compare each peak to every other peak with the aligned data
+%% compare peak 1 to every other peak with the aligned data
 
    %compare peak 1 with peak n
    
   mean_pk1 = mean(fp_locked_data(:,:,1), 2);
      %catch peak 1
-   [pks1, locs1] = findpeaks(mean_pk1);
+   locs1 = findpeaks(mean_pk1);
  for peaknb = 2:4
   mean_pk2 = mean(fp_locked_data(:,:,peaknb), 2);
    h = figure();
    univx = -150:150;
-   x = locs1(1)-150:locs1(1)+150;
+   x = locs1.loc(1)-150:locs1.loc(1)+150;
    plot(univx, mean_pk1(x),'LineWidth',1, 'Color', 'black')
    hold on
    %catch peak 2
-   [pks2, locs2] = findpeaks(mean_pk2);
-   x2 =locs2(peaknb)-150:locs2(peaknb)+150;
+   locs2 = findpeaks(mean_pk2);
+   x2 =locs2.loc(peaknb)-150:locs2.loc(peaknb)+150;
    plot(univx, mean_pk2(x2),'LineWidth',1, 'Color', 'red')
    title({'DE50_NDE0_su', 'M layers single units', 'peak aligned'}, 'Interpreter', 'none')
     xlabel('Time from peak (ms)')
     ylabel('Spike rate (spike/sec)')
     legend( 'peak1',sprintf('peak%d', peaknb),'Location', 'bestoutside')  
-   filename = strcat('C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\plots\',strcat(f{2},sprintf('_aligned_bsl_mean_M_layer_peak%d_peak%d', 1, peaknb )));
-   saveas(gcf, strcat(filename, '.png'));
+   %filename = strcat('C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\plots\',strcat(f{2},sprintf('_aligned_bsl_mean_P_layer_peak%d_peak%d', 1, peaknb )));
+  % saveas(gcf, strcat(filename, '.png'));
+ end
+
+ %% Align data to every trough
+ 
+    layer_idx = find(strcmp(layer, 'M'));
+
+log_p_layer = zeros(length(layer),1);
+log_p_layer(layer_idx) = logical(layer_idx);
+    
+  xabs = -100:1301;
+%x = 1:1702;
+nyq = 15000;
+channum = 1: length(log_p_layer);
+ 
+raw_mean_bs = nan(length(xabs), length(channum));
+filtered_dSUA = nan(length(xabs), length(channum),3);
+all_locsdSUA_filtered = nan(length(channum),3);
+up_dist = nan(length(channum), 3);
+
+pvalues = nan(1,length(channum));
+mean_linreg = nan(2,1);
+ clear troughalign;
+for troughalign = 1:3
+    clear i ;
+ for i = 1:length(log_p_layer)
+     
+     if log_p_layer(i) == 1
+   mean_data = mean(squeeze(data_file.good_data(i).channel_data.hypo{1,2}.cont_su(400:1901,:,:)),2);
+   bsl = mean(mean_data(1:200));
+   raw_mean_bs(:,i) = mean_data(101:end)- bsl;
+   
+   lpc       = 100; %low pass cutoff
+   lWn       = lpc/nyq;
+   [bwb,bwa] = butter(4,lWn,'low');
+   lpdSUA      = filtfilt(bwb,bwa, raw_mean_bs(:,i));
+  
+    
+ filtered_dSUA(:,i, troughalign) = lpdSUA;
+ %find peaks for every channel
+ locsdSUA_filtered = findpeaks(-filtered_dSUA(100:1251,i, troughalign));
+ %store first trough location
+
+   for len = 1:400
+   
+            if lpdSUA(len) < lpdSUA(len+1)
+   locsp = findpeaks(lpdSUA(len:1200));
+    
+   locst = findpeaks(-lpdSUA(len+locsp.loc(1):1200));
+       break
+            end
+    end
+        
+         if length(locst.loc) >= 3
+             %adjust location to the first data point of lpsu (+len),
+    lpsulocs = locst.loc(1:3) +locsp.loc(1) + len;
+    all_locsdSUA_filtered(i, troughalign) = lpsulocs(troughalign);
+         end 
+ %compute the distance between the peakalign and the last datapoint and store  
+ %in a matrix
+ up_dist(i,troughalign)= length(xabs)- all_locsdSUA_filtered(i, troughalign);
+     
+     end
+ end
+end
+ %get the max distance between the peakalign and the stimulus onset
+ max_low_dist = max(all_locsdSUA_filtered, [], 'all');
+ %create new matrix with the length(max(d)+max(xabs - d))
+ new_dist = max_low_dist + max(up_dist, [], 'all');
+ fp_locked_data = nan(new_dist,length(layer_idx),4);
+  %h1 = figure();
+
+ clear troughalign;
+for troughalign = 1:3 
+   clear n
+ for n = 1:length(fp_locked_data(1,:,1))
+    if ~isnan(all_locsdSUA_filtered(layer_idx(n),troughalign))
+ lower_bound =max_low_dist-all_locsdSUA_filtered(layer_idx(n),troughalign)+1;
+ upper_bound =max_low_dist-all_locsdSUA_filtered(layer_idx(n),troughalign)+length(xabs);
+ 
+ fp_locked_data(lower_bound:upper_bound,n, troughalign) = filtered_dSUA(:,layer_idx(n), troughalign);
+
+ %{
+ x = 1:length(fp_locked_data(:,1));
+ plot(x, fp_locked_data(:,n))
+ hold on
+%}
+    end
+ end
+
+
+clear m;
+ for m = length(fp_locked_data(1,:,troughalign)):-1:1
+  if isnan(fp_locked_data(:,m, troughalign))
+     fp_locked_data(:,m, :) = [];
+  end
+ end
+
+
+
+  mean_filtered = mean(fp_locked_data(:,:,troughalign), 2);
+ locsdSUA_mean = findpeaks(-mean_filtered);
+ x1 = -locsdSUA_mean.loc(troughalign)+1:length(mean_filtered)-locsdSUA_mean.loc(troughalign);
+
+   h = figure();
+ 
+ plot(x1,mean_filtered,'LineWidth',1, 'Color', 'black')
+txt1 = 'mean aligned to trough';
+text(x1(400), mean_filtered(400), txt1)
+ hold on
+ %{
+ ci_low = mean_filtered - std(fp_locked_data,0,2);
+ plot(x1, ci_low, 'LineWidth',1,'Color', 'blue')
+ hold on
+ 
+ ci_high = mean_filtered + std(fp_locked_data,0,2);
+ plot(x1, ci_high, 'LineWidth',1,'Color', 'blue')
+ %}
+
+   title({'DE50_NDE0_su', 'M layers single units', sprintf('aligned on troughs')}, 'Interpreter', 'none')
+    xlabel(sprintf('Time from %d trough (ms)', troughalign))
+    ylabel('Spike rate (spike/sec)')
+    legend( 'mean','Location', 'bestoutside')  
+   filename = strcat('C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\plots\',strcat(f{2}, sprintf('_trough_%d_aligned_bsl_mean_M_layer', troughalign)));
+  % saveas(gcf, strcat(filename, '.png'));
+
+end
+
+%% plotting all the curves together
+layer_idx = find(strcmp(layer, 'K'));
+
+log_p_layer = zeros(length(layer),1);
+log_p_layer(layer_idx) = logical(layer_idx);
+    
+  xabs = -100:1301;
+%x = 1:1702;
+nyq = 15000;
+channum = 1: length(log_p_layer);
+ 
+raw_mean_bs = nan(length(xabs), length(channum));
+filtered_dSUA = nan(length(xabs), length(channum),3);
+all_locsdSUA_filtered = nan(length(channum),3);
+up_dist = nan(length(channum), 3);
+
+pvalues = nan(1,length(channum));
+mean_linreg = nan(2,1);
+ clear troughalign;
+for troughalign = 1:3
+    clear i ;
+ for i = 1:length(log_p_layer)
+     
+     if log_p_layer(i) == 1
+   mean_data = mean(squeeze(data_file.good_data(i).channel_data.hypo{1,2}.cont_su(400:1901,:,:)),2);
+   bsl = mean(mean_data(1:200));
+   raw_mean_bs(:,i) = mean_data(101:end)- bsl;
+   
+   lpc       = 100; %low pass cutoff
+   lWn       = lpc/nyq;
+   [bwb,bwa] = butter(4,lWn,'low');
+   lpdSUA      = filtfilt(bwb,bwa, raw_mean_bs(:,i));
+  
+    
+ filtered_dSUA(:,i, troughalign) = lpdSUA;
+ %find troughs for every channel
+
+ 
+    for len = 1:400
+   
+            if lpdSUA(len) < lpdSUA(len+1)
+   locsp = findpeaks(lpdSUA(len:1200));
+    
+   locst = findpeaks(-lpdSUA(len+locsp.loc(1):1200));
+       break
+            end
+    end
+        
+         if length(locst.loc) >= 3
+       %adjust location to the first data point of lpsu (+len),
+    lpsulocs = locst.loc(1:3) +locsp.loc(1) + len;
+    all_locsdSUA_filtered(i, troughalign) = lpsulocs(troughalign);
+         end
+ %compute the distance between the peakalign and the last datapoint and store
+ %in a matrix
+ up_dist(i,troughalign)= length(xabs)- all_locsdSUA_filtered(i, troughalign);
+      end
+     end
+ end
+
+ %get the max distance between the peakalign and the stimulus onset
+ max_low_dist = max(all_locsdSUA_filtered, [], 'all');
+ %create new matrix with the length(max(d)+max(xabs - d))
+ new_dist = max_low_dist + max(up_dist, [], 'all');
+ fp_locked_data = nan(new_dist,length(layer_idx),4);
+  %h1 = figure();
+
+ clear troughalign;
+for troughalign = 1:3 
+   clear n
+ for n = 1:length(fp_locked_data(1,:,1))
+    if ~isnan(all_locsdSUA_filtered(layer_idx(n),troughalign))
+ lower_bound =max_low_dist-all_locsdSUA_filtered(layer_idx(n),troughalign)+1;
+ upper_bound =max_low_dist-all_locsdSUA_filtered(layer_idx(n),troughalign)+length(xabs);
+ 
+ fp_locked_data(lower_bound:upper_bound,n, troughalign) = filtered_dSUA(:,layer_idx(n), troughalign);
+
+ %{
+ x = 1:length(fp_locked_data(:,1));
+ plot(x, fp_locked_data(:,n))
+ hold on
+%}
+    end
+ end
+
+
+clear m;
+ for m = length(fp_locked_data(1,:,troughalign)):-1:1
+  if isnan(fp_locked_data(:,m, troughalign))
+     fp_locked_data(:,m, :) = [];
+  end
+ end
+
+end
+
+
+   h = figure();
+for troughalign = 1:3
+  mean_filtered = mean(fp_locked_data(:,:,troughalign), 2);
+ locsdSUA_mean = findpeaks(mean_filtered);
+ x1 = -locsdSUA_mean.loc(1)+1:length(mean_filtered)-locsdSUA_mean.loc(1);
+
+ 
+ plot(x1,mean_filtered,'LineWidth',1) % 'Color', 'black')
+%txt1 = sprintf('trough %d', troughalign);
+%text(x1(400), mean_filtered(400), txt1)
+ hold on
+ %{
+ ci_low = mean_filtered - std(fp_locked_data,0,2);
+ plot(x1, ci_low, 'LineWidth',1,'Color', 'blue')
+ hold on
+ 
+ ci_high = mean_filtered + std(fp_locked_data,0,2);
+ plot(x1, ci_high, 'LineWidth',1,'Color', 'blue')
+ %}
+
+   title({'DE50_NDE0_su', 'M layers single units', sprintf('aligned on troughs')}, 'Interpreter', 'none')
+    xlabel('Time from first peak (ms)')
+    ylabel('Spike rate (spike/sec)')
+    legend( 'mean aligned on trough 1','mean aligned on trough 2', 'mean aligned on trough 3','Location', 'bestoutside')  
+   
+
+end
+filename = strcat('C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\plots\',strcat(f{2}, '_trough_aligned_bsl_mean_M_layer'));
+saveas(gcf, strcat(filename, '.png'));
+
+
+%% compare trough 1 to every other trough with the aligned data
+
+   %compare trough 1 with trough n
+   
+  mean_pk1 = mean(fp_locked_data(:,:,1), 2);
+     %catch trough 1
+   locs1 = findpeaks(-mean_pk1);
+ for troughnb = 2:3
+  mean_pk2 = mean(fp_locked_data(:,:,troughnb), 2);
+   h = figure();
+   univx = -150:150;
+   x = locs1.loc(1)-150:locs1.loc(1)+150;
+   plot(univx, mean_pk1(x),'LineWidth',1, 'Color', 'black')
+   hold on
+   %catch trough 2
+   locs2 = findpeaks(-mean_pk2);
+   x2 =locs2.loc(troughnb)-150:locs2.loc(troughnb)+150;
+   plot(univx, mean_pk2(x2),'LineWidth',1, 'Color', 'red')
+   title({'DE50_NDE0_su', 'K layers single units', 'trough aligned'}, 'Interpreter', 'none')
+    xlabel('Time from trough (ms)')
+    ylabel('Spike rate (spike/sec)')
+    legend( 'trough1',sprintf('trough%d', troughnb),'Location', 'bestoutside')  
+   filename = strcat('C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\plots\',strcat(f{2},sprintf('_aligned_bsl_mean_K_layer_trough%d_trough%d', 1, troughnb )));
+   %saveas(gcf, strcat(filename, '.png'));
  end
