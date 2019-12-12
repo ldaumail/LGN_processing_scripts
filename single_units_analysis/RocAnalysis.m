@@ -16,13 +16,16 @@ layer_idx = find(strcmp(layer, 'P'));
 log_p_layer = zeros(length(layer),1);
 log_p_layer(layer_idx) = logical(layer_idx);
  
+
+%% compute the power spectrum using mtspecgramc function
+
 Ses = struct();
 bs_data = struct();
 channum = 1: length(log_p_layer);
 mean_S = nan(1147,38, length(channum));
 
 xabs = -100:1301;
-
+xpow = 30:1301;
 filtered_dMUA = nan(length(xabs), length(channum));
 %dim 2 = channel, dim3 = trials
  Fs = 1000;
@@ -45,7 +48,9 @@ clear S namelist;
 namelist2(1,1:length(sprintf('S_%d',i))) = sprintf('S_%d',i);
 Ses(i).namelist2 = S;
 mean_S(:,:,i) = nanmean(S,3);
-tvec     = t*1000 + (xabs(1));
+%tvec     = t*1000 + (xabs(1));
+time_adj = 1:128;
+tvec = cat(2, time_adj , t*1000) ;
 %we can also store tvec and f in a struct, but they are all identical
  end
  
@@ -53,34 +58,36 @@ tvec     = t*1000 + (xabs(1));
  layer_idx = find(strcmp(layer, 'P'));
 figure, 
 normspec = (nanmean(mean_S(:,:,layer_idx),3) - min(nanmean(mean_S(:,:,layer_idx),3)))./(max(nanmean(mean_S(:,:,layer_idx),3)) - min(nanmean(mean_S(:,:,layer_idx),3)));
-plot(tvec,squeeze(normspec(:,1))')
+time_adj_data = nan(length(tvec),1);
+time_adj_data(129:end,1) = normspec(:,1);
+plot(tvec,squeeze(time_adj_data(:,1))')
 title({'DE50_NDE0_su', 'Mean P layer power at 4Hz vs time normalized', sprintf('')}, 'Interpreter', 'none')
     xlabel('Time from 71ms before stimulus onset(ms)')
     ylabel('Normalized Power at 4Hz(no units)')
 filename = strcat('C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\power_spectrum_plots\',contrast{2},'normalized_power_freq_time_mean_P_layer_4hz');
 %saveas(gcf, strcat(filename, '.png')); 
  
-
+%% perform the Receiver Operating Characteristics analysis
 
 reps   = 10000;
 all_sigs95 = nan(length(Ses),1);
 all_sigs90 = nan(length(Ses),1);
 for i = 1:length(Ses)
-deresp = nanmean(squeeze(Ses(i).namelist2(1:548,1,:)), 1);
-biresp = nanmean(squeeze(Ses(i).namelist2(549:end,1,:)), 1);
+part1 = nanmean(squeeze(Ses(i).namelist2(1:547,1,:)), 1);
+part2 = nanmean(squeeze(Ses(i).namelist2(548:1122,1,:)), 1);
 
-    if nanmean(deresp) > nanmean(biresp)
-    pref                  = deresp;
-    nonpref               = biresp;
+    if nanmean(part1) > nanmean(part2)
+    cond1                  = part1;
+    cond2               = part2;
     else
-    pref                  = biresp;
-    nonpref               = deresp;
+    cond1               = part2;
+    cond2               = part1;
     end
 
-    [X,Y,T,AUC]           = perfcurve([ones(length(pref),1); repmat(2,length(nonpref),1)],[pref nonpref],1);
-    NP                    = length(nonpref);
-    PR                    = length(pref);
-    catdat                = [pref nonpref];
+    [X,Y,T,AUC]           = perfcurve([ones(length(cond1),1); repmat(2,length(cond2),1)],[cond1 cond2],1);
+    NP                    = length(cond2);
+    PR                    = length(cond1);
+    catdat                = [cond1 cond2];
 
 
     for r       = 1:reps
@@ -112,3 +119,132 @@ end
 
 save( strcat(gooddatadir,'roc_results90.mat'), 'all_sigs90');
 
+sig95_idx = find(all_sigs95);
+sig90_idx = find(all_sigs90);
+
+%% Analyze ROC analysis results per layer
+
+gooddatadir = 'C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\';
+channelfilename = [gooddatadir 'good_single_units_data_4bmpmore']; 
+data_file = load(channelfilename);
+
+
+sig95_idx = load( strcat(gooddatadir,'roc_results95.mat'));
+ 
+layer = {'K','M','P','K','K','K','M','P','P','','M','M','','','M','','','P','','M','','M','M','','P','M','','P', ...
+'P','','','K','P','M','M','M','P','','P','K','P','P','','P','P','M','','P','M','P','M','P','','P','M','M','P','','M','M','P','M', ...
+'','','M','M','M','P','M','M','M','M','P','P'};
+layer_idx = find(strcmp(layer, 'M'));
+log_p_layer = zeros(length(layer),1);
+log_p_layer(layer_idx) = logical(layer_idx);
+Ses = struct();
+bs_data = struct();
+%channum = 1: length(log_p_layer);
+%add +128 ms to adjust the time to -100ms before stim onset
+mean_S = nan(1147+128,38, length(layer_idx));
+Fs = 1000;
+ movingwin       = [.256 .001]; % length of moving window in seconds (should be to the power of 2) + length of sliding window
+ params.tapers   = [2 3];
+ params.Fs       = Fs;
+ params.fpass    = [1 150];
+xabs = -100:1301;
+xpow = -99:1175;
+
+idx = [1 3 2 4];
+
+clear i
+clear chan
+for chan =1:4:length(layer_idx)
+ figure, 
+    for i = 1:4
+
+data = squeeze(data_file.good_data(layer_idx(chan+i-1)).channel_data.hypo{1,2}.cont_su(400:1901,:,:));
+   bsl = mean(data(1:200,:));
+   norm_mean_bs = nan(length(xabs), 1,length(data(1,:)));
+   norm_mean_bs(:,1,:) = data(101:end, :) - bsl;
+ 
+clear S namelist;
+[S,t,f]        = mtspecgramc(norm_mean_bs(:,1,:) ,movingwin, params); 
+ 
+
+mean_S(129:end,:,chan+i-1) = nanmean(S,3);
+%tvec     = t*1000 + (xabs(1));
+normchan = (mean_S(:,:,chan+i-1) - min(mean_S(:,:,chan+i-1)))./(max(mean_S(:,:,chan+i-1)) - min(mean_S(:,:,chan+i-1)));
+xpow = -99:1175; 
+sp = subplot(length(1:2), 2, idx(i) );
+plot(xpow,normchan(:,1))
+    hold on
+    plot([0 0], ylim,'k')
+    hold on
+    plot([1150 1150], ylim,'k')
+    xlim([-100 1174])
+     if i == length(2)/2
+        ylh = ylabel({'\fontsize{9}Contacts','\fontsize{9}Normalized Power at 4Hz (no units)'});
+     end
+    
+
+      ylabelh = text(mean(xpow)/2, max(normchan(:,1))+0.05, strcat(num2str(layer_idx(chan+i-1)),' | ROC sign ', num2str(sig95_idx.all_sigs95(layer_idx(chan+i-1)))),'HorizontalAlignment','left','FontName', 'Arial', 'Interpreter','none','FontSize', 10);
+      
+      set(gca, 'linewidth',2)
+      set(gca,'box','off')
+    end
+    sgtitle({'DE50_NDE0_su', 'Mean M layer SUA power at 4Hz vs time normalized', sprintf('')}, 'Interpreter', 'none')
+   xlabel('Time from stimulus onset(ms)')
+   % ylabel('Normalized Power at 4Hz(no units)')
+   filename = strcat('C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\power_spectrum_plots\',strcat('DE50_NDE0_', sprintf('mean_sua_power_4hz_M_layer_%d', chan)));
+   saveas(gcf, strcat(filename, '.png')); 
+end 
+
+
+%% Proportions of significant units per layer
+
+sig95_idx = load( strcat(gooddatadir,'roc_results95.mat'));
+ 
+%lets remove the first unit, a 'K' unit as it was not well triggered
+%(recording started after stimulus onset
+layer = {'','M','P','K','K','K','M','P','P','','M','M','','','M','','','P','','M','','M','M','','P','M','','P', ...
+'P','','','K','P','M','M','M','P','','P','K','P','P','','P','P','M','','P','M','P','M','P','','P','M','M','P','','M','M','P','M', ...
+'','','M','M','M','P','M','M','M','M','P','P'};
+layer_idx = find(strcmp(layer, 'K'));
+log_p_layer = zeros(length(layer),1);
+log_p_layer(layer_idx) = logical(layer_idx);
+
+
+
+%dim 2 = channel, dim3 = trials
+ Fs = 1000;
+ movingwin       = [.256 .001]; % length of moving window in seconds (should be to the power of 2) + length of sliding window
+ params.tapers   = [2 3];
+ params.Fs       = Fs;
+ params.fpass    = [1 150];
+
+cntdecrease = 0;
+cntincrease = 0;
+clear i ;
+ for i = 1:length(layer_idx)
+data = squeeze(data_file.good_data(layer_idx(i)).channel_data.hypo{1,2}.cont_su(400:1901,:,:));
+   bsl = mean(data(1:200,:));
+   norm_mean_bs = nan(length(xabs), 1,length(data(1,:)));
+   norm_mean_bs(:,1,:) = data(101:end, :) - bsl;
+   
+clear S namelist;
+[S,t,f]        = mtspecgramc(norm_mean_bs(:,1,:) ,movingwin, params); 
+ 
+
+part1 = nanmean(nanmean(squeeze(S(1:547,1,:)), 1),2);
+
+part2 = nanmean(nanmean(squeeze(S(548:1122,1,:)), 1),2);
+
+
+if part1 > part2 && sig95_idx.all_sigs95(layer_idx(i)) ==1
+    cntdecrease = cntdecrease +1;
+end
+
+if part1 < part2 && sig95_idx.all_sigs95(layer_idx(i)) ==1
+    cntincrease = cntincrease +1;
+end
+
+end
+ 
+ percentdecrease = cntdecrease*100./length(layer_idx);
+ percentincrease = cntincrease*100./length(layer_idx);
