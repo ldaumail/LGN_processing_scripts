@@ -1,7 +1,11 @@
+
+%this script was developped after single_units_selection to only analyze
+%the units that were significant and to save them in a common file.
+%
 npmkdir    = 'C:\Users\maier\Documents\MATLAB\NPMK-master\'; 
 nbanadir   = 'C:\Users\maier\Documents\bootcamp-selected\nbanalysis\'; 
 
-directory  = 'C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\';
+directory  = 'C:\Users\maier\Documents\LGN_data\single_units\power_channels\';
 addpath(genpath(directory))
 addpath(genpath(npmkdir))
 addpath(genpath(nbanadir))
@@ -93,10 +97,10 @@ h = figure();
     filename = files(keepidx(i)+2).name;
    good_data(i).channel_data.filename = filename;
    end
-   invertedchanneldir = 'C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\';
+   channeldir = 'C:\Users\maier\Documents\LGN_data\single_units\power_channels\good_single_units_data_4bumps_more\';
   
-   channelfilename = [invertedchanneldir 'good_single_units_data_4bmpmore']; 
-   save(strcat(channelfilename, '.mat'), 'good_data');
+   channelfilename = [channeldir 'good_single_units_data_4bmpmore']; 
+   %save(strcat(channelfilename, '.mat'), 'good_data');
  save(strcat(channelfilename, '.mat'), 'good_data', '-v7.3');
  
  

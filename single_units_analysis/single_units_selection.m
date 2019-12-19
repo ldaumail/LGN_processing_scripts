@@ -15,6 +15,7 @@ invertedchanneldir = 'C:\Users\maier\Documents\LGN_data\single_units\inverted_po
 files = dir(strcat(directory, '*cinterocdrft*'));
 for file = 1:length(files)
     
+S = struct(); 
 STIMBRdatafile = files(file).name;
 
 STIMfilename   = [directory STIMBRdatafile]; 
@@ -153,7 +154,7 @@ fourhzpower(tr) = power(tr,index);
         
      %change contrast name and data if the significance is NDE50-
      %0DE vs Blank condition as it means the DE and NDE are inverted
-     
+     %{
      if testnb == 1
         channel_data.hypo{1}.cont_su = channel_data.hypo{2}.cont_su;
         channel_data.hypo{2}.cont_su = channel_data.hypo{1}.cont_su;
@@ -167,9 +168,9 @@ fourhzpower(tr) = power(tr,index);
         channel_data.contrast = channel_data.fixedc;
        
      end
-    
+    %}
      STIMBRdatafile(strfind(STIMBRdatafile, '.mat')) = [];
-     channelfilename = [invertedchanneldir STIMBRdatafile];
+     channelfilename = [channeldir STIMBRdatafile];
      save(strcat(channelfilename, '.mat'), 'channel_data');
 
     end
@@ -177,5 +178,5 @@ fourhzpower(tr) = power(tr,index);
 %end
     
 %save all the power values of each session
-save(powerfilename, 'power');
+%save(powerfilename, 'power');
 end

@@ -12,11 +12,19 @@ data_file = load(channelfilename);
 'P','','','K','P','M','M','M','P','','P','K','P','P','','P','P','M','','P','M','P','M','P','','P','M','M','P','','M','M','P','M', ...
 '','','M','M','M','P','M','M','M','M','P','P'};
 
-layer_idx = find(strcmp(layer, 'K'));
+layer_idx = find(strcmp(layer, 'P'));
 
 log_p_layer = zeros(length(layer),1);
 log_p_layer(layer_idx) = logical(layer_idx);
 
+maxvals= nan(length(log_p_layer),1);
+minvals= nan(length(log_p_layer),1);
+
+
+for i = 1:length(layer_idx)
+   maxvals(i) = max(data_file.good_data(layer_idx(i)).channel_data.diameter(:)); 
+   minvals(i) = max(data_file.good_data(layer_idx(i)).channel_data.diameter(:));
+end
 
 %% compute the power spectrum using mtspecgramc function
 

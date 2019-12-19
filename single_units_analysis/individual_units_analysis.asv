@@ -342,7 +342,7 @@ peakvals = load([channeldir 'all_data_peaks']);
 'P','','','K','P','M','M','M','P','','P','K','P','P','','P','P','M','','P','M','P','M','P','','P','M','M','P','','M','M','P','M', ...
 '','','M','M','M','P','M','M','M','M','P','P'};
 
- layer_idx = find(strcmp(layer, 'P'));
+ layer_idx = find(strcmp(layer, 'K'));
 
  f = {'DE0_NDE50','DE50_NDE0','DE50_NDE50'};
  
