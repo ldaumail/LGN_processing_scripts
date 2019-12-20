@@ -27,6 +27,12 @@ library(tidyr)
 row.has.na <- apply(org_data, 1, function(x){any(is.na(x))})
 org_data.filt <- org_data[!row.has.na,]
 
+##add normalized diff between peak 1 and peak 4 for colour gradient in plot multiplied by .045 for them to be between -1 and 1
+#org_data.filt$diff <- ((org_data.filt$peak1 - org_data.filt$peak4)-min(org_data.filt$peak1 - org_data.filt$peak4))/(max(org_data.filt$peak1 - org_data.filt$peak4)-min(org_data.filt$peak1 - org_data.filt$peak4))
+org_data.filt$diff <- ((org_data.filt$peak1 - org_data.filt$peak4))/(min(org_data.filt$peak4 - org_data.filt$peak1))
+#org_data.filt$diff <- (org_data.filt$peak4 - org_data.filt$peak1)*.045
+#max_val <- max(abs(org_data.filt$diff))
+
 
 ## plot each cell class independently
 
@@ -38,22 +44,24 @@ library(ggplot2)
 peak1 = org_data.filt$peak1[org_data.filt$layer=="P"]
 peak4 = org_data.filt$peak4[org_data.filt$layer=="P"]
 p_idx =org_data.filt$channel_idx[org_data.filt$layer=="P"]
-p_peakdata = data.frame(p_idx,peak1,peak4)
+p_diff = org_data.filt$diff[org_data.filt$layer == "P"]
+p_peakdata = data.frame(p_idx,peak1,peak4, p_diff)
 
 # convert from wide to long
-plot_dat <- melt(p_peakdata, id.var='p_idx')
+plot_dat <- melt(p_peakdata, id.var=c('p_idx','p_diff'))
 
 # plot
-svg('C:/Users/maier/Documents/LGN_data/single_units/inverted_power_channels/good_single_units_data_4bumps_more/plots/p_class_plot_peak1_peak4.svg')
+svg('C:/Users/maier/Documents/LGN_data/single_units/inverted_power_channels/good_single_units_data_4bumps_more/plots/p_class_plot_peak1_peak4_normnegpos.svg')
 ggplot(plot_dat) + 
   # simple lines
-  geom_line(aes(x=paste0('dots ', variable), y=value, group=p_idx, color=p_idx)) +
-  scale_colour_gradient(high="#FF3366")+
+  geom_line(aes(x=paste0('dots ', variable), y=value, group=p_idx, color=p_diff)) +
+  scale_colour_gradient(low="#FF3366")+
+  #scale_colour_gradientn(colours=heat.colors(50, alpha=.7, rev = TRUE))+
   # box plots and jitter points, with modified x value
   geom_violin(aes(x=variable, y=value,fill=variable), width=0.6, trim=F)+
   scale_fill_manual(values=c("#FF3366", "#FF6699"))+
   geom_boxplot(aes(x=variable, y=value),width=0.1) +
-  geom_jitter(alpha =.5, aes(x=paste0('dots ', variable), y=value, color=p_idx), position = position_jitter(width = .02)) +
+  geom_jitter(alpha =.5, aes(x=paste0('dots ', variable), y=value, color=p_diff), position = position_jitter(width = .02)) +
 
   # specify x value order
  scale_x_discrete(limits=c('peak1', 'dots peak1', 'dots peak4',
@@ -79,22 +87,23 @@ dev.off()
 peak1 = org_data.filt$peak1[org_data.filt$layer=="M"]
 peak4 = org_data.filt$peak4[org_data.filt$layer=="M"]
 p_idx =org_data.filt$channel_idx[org_data.filt$layer=="M"]
-m_peakdata = data.frame(p_idx,peak1,peak4)
+p_diff = org_data.filt$diff[org_data.filt$layer == "M"]
+m_peakdata = data.frame(p_idx,peak1,peak4,p_diff)
 
 # convert from wide to long
-plot_dat <- melt(m_peakdata, id.var='p_idx')
+plot_dat <- melt(m_peakdata, id.var=c('p_idx','p_diff'))
 
 # plot
-png('C:/Users/maier/Documents/LGN_data/single_units/inverted_power_channels/good_single_units_data_4bumps_more/plots/m_class_plot_peak1_peak4.png')
+svg('C:/Users/maier/Documents/LGN_data/single_units/inverted_power_channels/good_single_units_data_4bumps_more/plots/m_class_plot_peak1_peak4_normnegpos.svg')
 ggplot(plot_dat) + 
   # simple lines
-  geom_line(aes(x=paste0('dots ', variable), y=value, group=p_idx, color=p_idx)) +
+  geom_line(aes(x=paste0('dots ', variable), y=value, group=p_idx, color=p_diff)) +
   scale_colour_gradient(low="#333333")+
   # box plots and jitter points, with modified x value
   geom_violin(aes(x=variable, y=value,fill=variable), width=0.6, trim=F)+
   scale_fill_manual(values=c("#555555", "#999999"))+
   geom_boxplot(aes(x=variable, y=value),width=0.1) +
-  geom_jitter(alpha =.5, aes(x=paste0('dots ', variable), y=value, color=p_idx), position = position_jitter(width = .02)) +
+  geom_jitter(alpha =.5, aes(x=paste0('dots ', variable), y=value, color=p_diff), position = position_jitter(width = .02)) +
 
   # specify x value order
  scale_x_discrete(limits=c('peak1', 'dots peak1', 'dots peak4',
@@ -121,22 +130,23 @@ dev.off()
 peak1 = org_data.filt$peak1[org_data.filt$layer=="K"]
 peak4 = org_data.filt$peak4[org_data.filt$layer=="K"]
 p_idx =org_data.filt$channel_idx[org_data.filt$layer=="K"]
-k_peakdata = data.frame(p_idx,peak1,peak4)
+p_diff = org_data.filt$diff[org_data.filt$layer == "K"]
+k_peakdata = data.frame(p_idx,peak1,peak4,p_diff)
 
 # convert from wide to long
-plot_dat <- melt(k_peakdata, id.var='p_idx')
+plot_dat <- melt(k_peakdata, id.var=c('p_idx','p_diff'))
 
 # plot
-png('C:/Users/maier/Documents/LGN_data/single_units/inverted_power_channels/good_single_units_data_4bumps_more/plots/k_class_plot_peak1_peak4_5chan.png')
+svg('C:/Users/maier/Documents/LGN_data/single_units/inverted_power_channels/good_single_units_data_4bumps_more/plots/k_class_plot_peak1_peak4_5chan_normposneg.svg')
 ggplot(plot_dat) + 
   # simple lines
-  geom_line(aes(x=paste0('dots ', variable), y=value, group=p_idx, color=p_idx)) +
+  geom_line(aes(x=paste0('dots ', variable), y=value, group=p_idx, color=p_diff)) +
   scale_colour_gradient(low="#9CCC00")+
   # box plots and jitter points, with modified x value
   geom_violin(aes(x=variable, y=value,fill=variable), width=0.6, trim=F)+
   scale_fill_manual(values=c("#9CCC00", "#CCFF00"))+
   geom_boxplot(aes(x=variable, y=value),width=0.1) +
-  geom_jitter(alpha =.5, aes(x=paste0('dots ', variable), y=value, color=p_idx), position = position_jitter(width = .02)) +
+  geom_jitter(alpha =.5, aes(x=paste0('dots ', variable), y=value, color=p_diff), position = position_jitter(width = .02)) +
 
   # specify x value order
  scale_x_discrete(limits=c('peak1', 'dots peak1', 'dots peak4',
@@ -176,27 +186,30 @@ library(tidyr)
 
 row.has.na <- apply(org_data, 1, function(x){any(is.na(x))})
 org_data.filt <- org_data[!row.has.na,]
+org_data.filt$diff <- ((org_data.filt$window1 - org_data.filt$window2))/(min(org_data.filt$window2 - org_data.filt$window1))
 
 ## plot the P cell class
 window1 = org_data.filt$window1[org_data.filt$layer=="P"]
 window2 = org_data.filt$window2[org_data.filt$layer=="P"]
 p_idx =org_data.filt$channel_idx[org_data.filt$layer=="P"]
-p_powerdata = data.frame(p_idx,window1,window2)
+p_diff = org_data.filt$diff[org_data.filt$layer == "P"]
+
+p_powerdata = data.frame(p_idx,window1,window2,p_diff)
 
 # convert from wide to long
-plot_dat <- melt(p_powerdata, id.var='p_idx')
+plot_dat <- melt(p_powerdata, id.var=c('p_idx','p_diff'))
 
 # plot
-png('C:/Users/maier/Documents/LGN_data/single_units/inverted_power_channels/good_single_units_data_4bumps_more/power_spectrum/plots/p_class_plot_part1_part2.png')
+svg('C:/Users/maier/Documents/LGN_data/single_units/inverted_power_channels/good_single_units_data_4bumps_more/power_spectrum/plots/p_class_plot_part1_part2_normposneg.svg')
 ggplot(plot_dat) + 
   # simple lines
-  geom_line(aes(x=paste0('dots ', variable), y=value, group=p_idx, color=p_idx)) +
-  scale_colour_gradient(high="#FF3366")+
+  geom_line(aes(x=paste0('dots ', variable), y=value, group=p_idx, color=p_diff)) +
+  scale_colour_gradient(low="#FF3366")+
   # box plots and jitter points, with modified x value
   geom_violin(aes(x=variable, y=value,fill=variable), width=0.6, trim=F)+
   scale_fill_manual(values=c("#FF3366", "#FF6699"))+
   geom_boxplot(aes(x=variable, y=value),width=0.1) +
-  geom_jitter(alpha =.5, aes(x=paste0('dots ', variable), y=value, color=p_idx), position = position_jitter(width = .02)) +
+  geom_jitter(alpha =.5, aes(x=paste0('dots ', variable), y=value, color=p_diff), position = position_jitter(width = .02)) +
 
   # specify x value order
  scale_x_discrete(limits=c('window1', 'dots window1', 'dots window2',
@@ -223,22 +236,23 @@ dev.off()
 window1 = org_data.filt$window1[org_data.filt$layer=="M"]
 window2 = org_data.filt$window2[org_data.filt$layer=="M"]
 p_idx =org_data.filt$channel_idx[org_data.filt$layer=="M"]
-m_powerdata = data.frame(p_idx,window1,window2)
+p_diff = org_data.filt$diff[org_data.filt$layer == "M"]
+m_powerdata = data.frame(p_idx,window1,window2,p_diff)
 
 # convert from wide to long
-plot_dat <- melt(m_powerdata, id.var='p_idx')
+plot_dat <- melt(m_powerdata, id.var=c('p_idx','p_diff'))
 
 # plot
-png('C:/Users/maier/Documents/LGN_data/single_units/inverted_power_channels/good_single_units_data_4bumps_more/power_spectrum/plots/m_class_plot_part1_part2.png')
+svg('C:/Users/maier/Documents/LGN_data/single_units/inverted_power_channels/good_single_units_data_4bumps_more/power_spectrum/plots/m_class_plot_part1_part2_normposneg.svg')
 ggplot(plot_dat) + 
   # simple lines
-  geom_line(aes(x=paste0('dots ', variable), y=value, group=p_idx, color=p_idx)) +
+  geom_line(aes(x=paste0('dots ', variable), y=value, group=p_idx, color=p_diff)) +
   scale_colour_gradient(low="#333333")+
   # box plots and jitter points, with modified x value
   geom_violin(aes(x=variable, y=value,fill=variable), width=0.6, trim=F)+
   scale_fill_manual(values=c("#555555", "#999999"))+
   geom_boxplot(aes(x=variable, y=value),width=0.1) +
-  geom_jitter(alpha =.5, aes(x=paste0('dots ', variable), y=value, color=p_idx), position = position_jitter(width = .02)) +
+  geom_jitter(alpha =.5, aes(x=paste0('dots ', variable), y=value, color=p_diff), position = position_jitter(width = .02)) +
 
   # specify x value order
  scale_x_discrete(limits=c('window1', 'dots window1', 'dots window2',
@@ -265,22 +279,23 @@ dev.off()
 window1 = org_data.filt$window1[org_data.filt$layer=="K"]
 window2 = org_data.filt$window2[org_data.filt$layer=="K"]
 p_idx =org_data.filt$channel_idx[org_data.filt$layer=="K"]
-k_powerdata = data.frame(p_idx,window1,window2)
+p_diff = org_data.filt$diff[org_data.filt$layer == "K"]
+k_powerdata = data.frame(p_idx,window1,window2,p_diff)
 
 # convert from wide to long
-plot_dat <- melt(k_powerdata, id.var='p_idx')
+plot_dat <- melt(k_powerdata, id.var=c('p_idx','p_diff'))
 
 # plot
-png('C:/Users/maier/Documents/LGN_data/single_units/inverted_power_channels/good_single_units_data_4bumps_more/power_spectrum/plots/k_class_plot_part1_part2_5chan.png')
+svg('C:/Users/maier/Documents/LGN_data/single_units/inverted_power_channels/good_single_units_data_4bumps_more/power_spectrum/plots/k_class_plot_part1_part2_5chan_normposdiff.svg')
 ggplot(plot_dat) + 
   # simple lines
-  geom_line(aes(x=paste0('dots ', variable), y=value, group=p_idx, color=p_idx)) +
+  geom_line(aes(x=paste0('dots ', variable), y=value, group=p_idx, color=p_diff)) +
   scale_colour_gradient(low="#9CCC00")+
   # box plots and jitter points, with modified x value
   geom_violin(aes(x=variable, y=value,fill=variable), width=0.6, trim=F)+
   scale_fill_manual(values=c("#9CCC00", "#CCFF00"))+
   geom_boxplot(aes(x=variable, y=value),width=0.1) +
-  geom_jitter(alpha =.5, aes(x=paste0('dots ', variable), y=value, color=p_idx), position = position_jitter(width = .02)) +
+  geom_jitter(alpha =.5, aes(x=paste0('dots ', variable), y=value, color=p_diff), position = position_jitter(width = .02)) +
 
   # specify x value order
  scale_x_discrete(limits=c('window1', 'dots window1', 'dots window2',
