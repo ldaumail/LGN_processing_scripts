@@ -229,12 +229,18 @@ end
 gooddatadir = 'C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\';
 channelfilename = [gooddatadir 'good_single_units_data_4bmpmore']; 
 data_file = load(channelfilename);
+pvaluesdir = 'C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\individual_channels_peakadj2\lmer_results\';
+ pvalfilename = [pvaluesdir 'lmer_results.csv'];
+ pvalues = dlmread(pvalfilename, ',', 1,1);
+channeldir = 'C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\individual_channels_peakadj2\';
+ peakvals = load([channeldir 'all_data_peaks']);
  %exclude 160517, (first unit, left empty, it is a K neuron)
  layer = {'','M','P','K','K','K','M','P','P','','M','M','','','M','','','P','','M','','M','M','','P','M','','P', ...
 'P','','','K','P','M','M','M','P','','P','K','P','P','','P','P','M','','P','M','P','M','P','','P','M','M','P','','M','M','P','M', ...
 '','','M','M','M','P','M','M','M','M','P','P'};
 
-layer_idx = find(strcmp(layer, 'P'));
+ 
+layer_idx = find(strcmp(layer, 'M'));
 
 log_p_layer = zeros(length(layer),1);
 log_p_layer(layer_idx) = logical(layer_idx);
@@ -293,7 +299,9 @@ hold on
  max_low_dist = max(all_locsdSUA_filtered);
  %create new matrix with the length(max(d)+max(xabs - d))
  new_dist = max_low_dist + max(up_dist);
+ clear fp_locked_data norm_fp_locked
  fp_locked_data = nan(new_dist,length(layer_idx));
+ norm_fp_locked = nan(new_dist,length(layer_idx));
  for n = 1:length(layer_idx)
     
  lower_bound =max_low_dist-all_locsdSUA_filtered(layer_idx(n))+1;
@@ -303,33 +311,58 @@ hold on
  %x = 1:length(fp_locked_data(:,1));
  %plot(x, fp_locked_data(:,n))
  %hold on
+  norm_fp_locked(lower_bound:upper_bound,n) = (fp_locked_data(lower_bound:upper_bound,n)-min(fp_locked_data(lower_bound:upper_bound,n)))/(max(fp_locked_data(lower_bound:upper_bound,n))-min(fp_locked_data(lower_bound:upper_bound,n)));
+  end
  
- end
+ clear sig_su mean_sig_su
+  cnt = 0;
+ all_mean_data = nan(4, length(layer_idx));
+ %sig_su = nan(length(fp_locked_data(:,1)),length(layer_idx));
+  for nunit = 1:length(layer_idx)
+ mean_data = nanmean(peakvals.data_peaks(layer_idx(nunit)).namelist,2);
+   all_mean_data(:,nunit) = mean_data;
+  if all_mean_data(4,nunit) < all_mean_data(1,nunit) && pvalues(layer_idx(nunit),4) < .05
+      cnt= cnt+1;
+      sig_su(:,cnt) = norm_fp_locked(:,nunit); 
+     % plot(x_stim,norm_chan(:, nunit)')
+     %hold on
+  end
+  
+  end
+  mean_sig_su = mean(sig_su,2);
+ 
  h = figure();
-  mean_filtered = mean(fp_locked_data, 2);
+  mean_filtered = mean(norm_fp_locked, 2);
  locsdSUA_mean = findpeaks(mean_filtered(1:end));
  x1 = -locsdSUA_mean.loc(1)+1:length(mean_filtered)-locsdSUA_mean.loc(1);
- plot(x1,mean_filtered,'LineWidth',1, 'Color',[229/255, 49/255, 90/255])
- %[167/255 185/255 54/255])
+ plot(x1,mean_filtered,'LineWidth',1, 'Color',[24/255 23/255 23/255] )
+ ylim([-.1 1.1])
+ %green= [167/255 185/255 54/255])
  %black = [24/255 23/255 23/255] )
  %pink = [229/255, 49/255, 90/255])
  hold on
- ci_low = mean_filtered - 1.96*std(fp_locked_data,0,2)./sqrt(length(fp_locked_data(1,:)));
- plot(x1, ci_low,':', 'LineWidth',.7,'Color', [0.40, 0.40, 0.4])
+ ci_low = mean_filtered - 1.96*std(norm_fp_locked,0,2)./sqrt(length(norm_fp_locked(1,:)));
+ plot(x1, ci_low,':', 'LineWidth',.7,'Color', [24/255 23/255 23/255] )
  hold on
- 
- ci_high = mean_filtered + 1.96*std(fp_locked_data,0,2)./sqrt(length(fp_locked_data(1,:)));
- plot(x1, ci_high,':', 'LineWidth',.7,'Color', [0.4, 0.4, 0.4])
- plot([0 0], ylim,'k')
- xlim([-300 1100])
+ ci_high = mean_filtered + 1.96*std(norm_fp_locked,0,2)./sqrt(length(norm_fp_locked(1,:)));
+ plot(x1, ci_high,':', 'LineWidth',.7,'Color',[24/255 23/255 23/255] )
+  hold on
+  maxindex = find(~isnan(mean_filtered),1, 'last');
+  minindex = find(~isnan(mean_filtered),1,'first');
+  sig_su_plot = mean_sig_su(minindex:maxindex);
+  plot(x1(minindex:maxindex), sig_su_plot,  'LineWidth',1, 'Color',[141/255 140/255 140/255] )
+  hold on
+  plot([0 0], ylim,'k')
+
       set(gca, 'linewidth',2)
       set(gca,'box','off')
-   title({'P class cells mean spiking activity'}, 'Interpreter', 'none')
+   title({'M class cells mean spiking activity'}, 'Interpreter', 'none')
     xlabel('Time from first{\bf peak} (ms)')
     ylabel('Spike rate (spike/sec)')
-    legend( 'Mean','Mean-1.96*sem','Mean+1.96*sem','Location', 'bestoutside')
+    legend( 'Mean','Mean-1.96*sem','Mean+1.96*sem','Mean significant decrease','Location', 'bestoutside')
+     xlim([-300 1100])
      
-    filename = strcat('C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\plots\', strcat(contrast{2},'mean_P_class_fpaligned_pink'));
+    filename = strcat('C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\plots\', strcat(contrast{2},'mean_M_class_fpaligned_black_mean_sigdecsua_norm'));
    saveas(gcf, strcat(filename, '.svg'));
    saveas(gcf, strcat(filename, '.png'));
    

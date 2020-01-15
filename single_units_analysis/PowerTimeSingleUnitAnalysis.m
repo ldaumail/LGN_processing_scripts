@@ -324,6 +324,296 @@ filename = strcat('C:\Users\maier\Documents\LGN_data\single_units\inverted_power
 saveas(gcf, strcat(filename, '.svg'));
 saveas(gcf, strcat(filename, '.png'));
 %export_fig(gcf, '-jpg', '-transparent');
+
+%% Plot mean with error bars before stimulation and during stimulation in the same analysis
+%% different way to normalize the data(normalize mean SUA before computing the grand cell class mean
+%% plotting with spiking activity significant changes
+
+pvaluesdir = 'C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\individual_channels_peakadj2\lmer_results\';
+ pvalfilename = [pvaluesdir 'lmer_results.csv'];
+ pvalues = dlmread(pvalfilename, ',', 1,1);
+channeldir = 'C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\individual_channels_peakadj2\';
+ peakvals = load([channeldir 'all_data_peaks']);
+
+layer_idx = find(strcmp(layer, 'P'));
+log_p_layer = zeros(length(layer),1);
+log_p_layer(layer_idx) = logical(layer_idx);
+ 
+Ses = struct();
+bs_data = struct();
+channum = 1: length(log_p_layer);
+mean_S_stim = nan(1646+128,38, length(channum));
+%compute the power spectrum
+%dim 2 = channel, dim3 = trials
+ Fs = 1000;
+ movingwin       = [.256 .001]; % length of moving window in seconds (should be to the power of 2) + length of sliding window
+ params.tapers   = [2 3];
+ params.Fs       = Fs;
+ params.fpass    = [1 150];
+ 
+
+clear i ;
+ for i = 1:length(channum)
+data = squeeze(data_file.good_data(i).channel_data.hypo{1,2}.cont_su(1:1901,:,:));
+   bsl = mean(data(400:599,:));
+   %stim and bl data
+   norm_mean_bs = nan(length(data(:,1)),1,length(data(1,:)));
+   norm_mean_bs(:,1,:) = data(1:end,:,:) - bsl;
+  
+
+clear S namelist;
+[S,t,f]        = mtspecgramc(norm_mean_bs(:,1,:) ,movingwin, params); 
+
+mean_S_stim(129:end,:,i) = nanmean(S,3);
+
+%we can also store tvec and f in a struct, but they are all identical
+ end
+ 
+time_adj = -99:28;
+x_stim = cat(2, time_adj-500 , t*1000 -600) ;
+
+%here we compute the individual normalized units necessary for the variance
+%for both the baseline data and the stimulus data
+norm_chan = nan(length(mean_S_stim(:,1,1)), length(layer_idx));
+clear i;
+for i = 1:length(layer_idx)
+min_chan =min(squeeze(mean_S_stim(:,1,layer_idx(i))),[],1);
+max_chan = max(squeeze(mean_S_stim(:,1,layer_idx(i))),[],1);
+norm_chan(:,i) = (squeeze(mean_S_stim(:,1,layer_idx(i)))-min_chan)./(max_chan - min_chan);
+end
+
+normspec = nanmean(norm_chan,2);
+
+figure, 
+ plot(x_stim,normspec', 'LineWidth',1, 'Color',[229/255, 49/255, 90/255])
+ xlim([-600 1250])
+ ylim([-0.1 1])
+ %green[167/255 185/255 54/255])
+ %black = [24/255 23/255 23/255] )
+ %pink = [229/255, 49/255, 90/255]) 
+ hold on
+ ci_low = normspec(:,1) - 1.96*std(norm_chan,0,2,'omitnan')./sqrt(length(norm_chan(1,:)));
+ plot(x_stim, ci_low,':', 'LineWidth',1,'Color', [.40 .40 .40])
+ hold on
+ ci_high = normspec(:,1) + 1.96*std(norm_chan,0,2,'omitnan')./sqrt(length(norm_chan(1,:)));
+ plot(x_stim, ci_high,':', 'LineWidth',1,'Color', [.40 .40 .40])
+ plot([0 0], ylim,'k')
+ hold on
+ plot([1150 1150], ylim,'k')
+ hold on 
+ 
+ cnt = 0;
+ all_mean_data = nan(4, length(layer_idx));
+  for nunit = 1:length(layer_idx)
+ mean_data = nanmean(peakvals.data_peaks(layer_idx(nunit)).namelist,2);
+   all_mean_data(:,nunit) = mean_data;
+  if all_mean_data(4,nunit) < all_mean_data(1,nunit) && pvalues(layer_idx(nunit),4) < .05
+      cnt= cnt+1;
+      sig_su(:,cnt) = norm_chan(:,nunit); 
+     % plot(x_stim,norm_chan(:, nunit)')
+     %hold on
+  end
+  
+  end
+  mean_sig_su = mean(sig_su,2);
+  plot(x_stim, mean_sig_su,  'LineWidth',1)
+  
+ %ylim([-0.8 1.2])
+     set(gca, 'linewidth',2)
+      set(gca,'box','off') 
+      xlabel('Time from stimulus onset(ms)')
+   ylabel('Normalized Power at 4Hz(no units)')
+title({'P class cells mean power at 4Hz vs time normalized', sprintf('')}, 'Interpreter', 'none')
+    legend('Mean', 'Mean-1.96*sem', 'Mean+1.96*sem', 'Mean significant decrease', 'Location', 'bestoutside')
+    
+filename = strcat('C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\power_spectrum\plots\',contrast{2},'indiv_normalized_power_freq_time_mean_95ci_P_layer_4hz_gathered_pink_sig_suamean');
+saveas(gcf, strcat(filename, '.svg'));
+saveas(gcf, strcat(filename, '.png'));
+%export_fig(gcf, '-jpg', '-transparent');
+
+%% Plot mean with error bars before stimulation and during stimulation in the same analysis
+%% different way to normalize the data(normalize mean SUA before computing the grand cell class mean
+%% plotting with spiking activity significant changes
+
+
+channeldir = 'C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\individual_channels_peakadj2\';
+ peakvals = load([channeldir 'all_data_peaks']);
+gooddatadir = 'C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\';
+ sig95_idx = load( strcat(gooddatadir,'roc_results95.mat'));
+ 
+
+layer_idx = find(strcmp(layer, 'P'));
+log_p_layer = zeros(length(layer),1);
+log_p_layer(layer_idx) = logical(layer_idx);
+ 
+Ses = struct();
+bs_data = struct();
+channum = 1: length(log_p_layer);
+mean_S_stim = nan(1646+128,38, length(channum));
+%compute the power spectrum
+%dim 2 = channel, dim3 = trials
+ Fs = 1000;
+ movingwin       = [.256 .001]; % length of moving window in seconds (should be to the power of 2) + length of sliding window
+ params.tapers   = [2 3];
+ params.Fs       = Fs;
+ params.fpass    = [1 150];
+ 
+
+clear i ;
+ for i = 1:length(channum)
+data = squeeze(data_file.good_data(i).channel_data.hypo{1,2}.cont_su(1:1901,:,:));
+   bsl = mean(data(400:599,:));
+   %stim and bl data
+   norm_mean_bs = nan(length(data(:,1)),1,length(data(1,:)));
+   norm_mean_bs(:,1,:) = data(1:end,:,:) - bsl;
+  
+
+clear S namelist;
+[S,t,f]        = mtspecgramc(norm_mean_bs(:,1,:) ,movingwin, params); 
+
+mean_S_stim(129:end,:,i) = nanmean(S,3);
+
+%we can also store tvec and f in a struct, but they are all identical
+ end
+ 
+time_adj = -99:28;
+x_stim = cat(2, time_adj-500 , t*1000 -600) ;
+
+%here we compute the individual normalized units necessary for the variance
+%for both the baseline data and the stimulus data
+norm_chan = nan(length(mean_S_stim(:,1,1)), length(layer_idx));
+clear i;
+for i = 1:length(layer_idx)
+min_chan =min(squeeze(mean_S_stim(:,1,layer_idx(i))),[],1);
+max_chan = max(squeeze(mean_S_stim(:,1,layer_idx(i))),[],1);
+norm_chan(:,i) = (squeeze(mean_S_stim(:,1,layer_idx(i)))-min_chan)./(max_chan - min_chan);
+end
+
+normspec = nanmean(norm_chan,2);
+
+figure, 
+ plot(x_stim,normspec', 'LineWidth',1, 'Color',[229/255, 49/255, 90/255])
+ xlim([-600 1250])
+ ylim([-0.1 1])
+ %green[167/255 185/255 54/255])
+ %black = [24/255 23/255 23/255] )
+ %pink = [229/255, 49/255, 90/255]) 
+ hold on
+ ci_low = normspec(:,1) - 1.96*std(norm_chan,0,2,'omitnan')./sqrt(length(norm_chan(1,:)));
+ plot(x_stim, ci_low,':', 'LineWidth',1,'Color', [.40 .40 .40])
+ hold on
+ ci_high = normspec(:,1) + 1.96*std(norm_chan,0,2,'omitnan')./sqrt(length(norm_chan(1,:)));
+ plot(x_stim, ci_high,':', 'LineWidth',1,'Color', [.40 .40 .40])
+ plot([0 0], ylim,'k')
+ hold on
+ plot([1150 1150], ylim,'k')
+ hold on 
+ 
+ cnt = 0;
+  for nunit = 1:length(layer_idx)
+ 
+   
+part1 = nanmean(norm_chan(601:1147,nunit),1);
+part2 = nanmean(norm_chan(1148:1722,nunit), 1);
+
+
+if part1 > part2 && sig95_idx.all_sigs95(layer_idx(nunit)) ==1
+    cnt = cnt +1;
+     sig_su(:,cnt) = norm_chan(:,nunit); 
+       % plot(x_stim,norm_chan(:, nunit)')
+     %hold on
+end
+     
+   
+  end
+  
+  mean_sig_su = mean(sig_su,2);
+  plot(x_stim, mean_sig_su,  'LineWidth',1, 'Color',[141/255 140/255 140/255] )
+  
+ %ylim([-0.8 1.2])
+     set(gca, 'linewidth',2)
+      set(gca,'box','off') 
+      xlabel('Time from stimulus onset(ms)')
+   ylabel('Normalized Power at 4Hz(no units)')
+title({'P class cells mean power at 4Hz vs time normalized', sprintf('')}, 'Interpreter', 'none')
+    legend('Mean', 'Mean-1.96*sem', 'Mean+1.96*sem', 'Mean significant decrease', 'Location', 'bestoutside')
+    
+filename = strcat('C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\power_spectrum\plots\',contrast{2},'indiv_normalized_power_freq_time_mean_95ci_P_layer_4hz_gathered_pink_sig_suamean_pow');
+saveas(gcf, strcat(filename, '.svg'));
+saveas(gcf, strcat(filename, '.png'));
+%export_fig(gcf, '-jpg', '-transparent');
+
+
+%% Plot mean with error bars before stimulation and during stimulation in the same analysis for one single unit only
+
+Ses = struct();
+bs_data = struct();
+
+mean_S_stim = nan(1646+128,38,1);
+%compute the power spectrum
+%dim 2 = channel, dim3 = trials
+ Fs = 1000;
+ movingwin       = [.256 .001]; % length of moving window in seconds (should be to the power of 2) + length of sliding window
+ params.tapers   = [2 3];
+ params.Fs       = Fs;
+ params.fpass    = [1 150];
+ 
+
+
+data = squeeze(data_file.good_data(23).channel_data.hypo{1,2}.cont_su(1:1901,:,:));
+   bsl = mean(data(400:599,:));
+   %stim and bl data
+   norm_mean_bs = nan(length(data(:,1)),1,length(data(1,:)));
+   norm_mean_bs(:,1,:) = data(1:end,:,:) - bsl;
+  
+
+clear S namelist;
+[S,t,f]        = mtspecgramc(norm_mean_bs(:,1,:) ,movingwin, params); 
+
+mean_S_stim(129:end,:,1) = nanmean(S,3);
+
+%we can also store tvec and f in a struct, but they are all identical
+
+time_adj = -99:28;
+x_stim = cat(2, time_adj-500 , t*1000 -600) ;
+
+%here we compute the individual normalized units necessary for the variance
+%for both the baseline data and the stimulus data
+norm_chan = nan(length(mean_S_stim(:,1,1)), 1);
+
+min_chan =min(squeeze(mean_S_stim(:,1,1)),[],1);
+max_chan = max(squeeze(mean_S_stim(:,1,1)),[],1);
+norm_chan(:,1) = (squeeze(mean_S_stim(:,1,1))-min_chan)./(max_chan - min_chan);
+
+
+normspec = (mean_S_stim(:,:,1) - min(mean_S_stim(:,:,1)))./(max(mean_S_stim(:,:,1)) - min(mean_S_stim(:,:,1)));
+
+figure, 
+ plot(x_stim,squeeze(normspec(:,1))', 'LineWidth',1)
+ %green = 'Color',[167/255 185/255 54/255])
+ %black = [24/255 23/255 23/255] )
+ %pink = [229/255, 49/255, 90/255]) 
+ hold on
+ plot([0 0], ylim,'k')
+ hold on
+ plot([1150 1150], ylim,'k')
+ xlim([-600 1250])
+ %ylim([-0.8 1.2])
+     set(gca, 'linewidth',2)
+      set(gca,'box','off') 
+      xlabel('Time from stimulus onset(ms)')
+   ylabel('Normalized Power at 4Hz(no units)')
+title({'SU Mean power at 4Hz vs time normalized', sprintf('')}, 'Interpreter', 'none')
+   
+    
+filename = strcat('C:\Users\maier\Documents\adaptation_LGN_abstract_poster\poster\',contrast{2},'new_normalized_power_freq_time_mean_160623_I_p03_uclust3_unfiltered_4hz_gathered');
+saveas(gcf, strcat(filename, '.svg'));
+saveas(gcf, strcat(filename, '.png'));
+%export_fig(gcf, '-jpg', '-transparent');
+
+
+
+
 %% Kacie's code 
  load('/Users/kaciedougherty/Downloads/160623_I_p01_uclust4_cinterocdrft_stab_fft_sigmat.mat')
  
