@@ -50,9 +50,7 @@ end
  logical_fieldnames = fieldnames(data_header);
  Key = cell2mat(strfind(logical_fieldnames, '_'));
 % cont1 = struct();
- cont1_data = struct();
- cont2_data = struct();
- cont3_data = struct();
+cont_data = struct();
 for nb = 1:numel(fieldnames(data_header))
    fieldname = char(logical_fieldnames(nb));
    %for a more generalized version, use regexp, but more complexe like regexp(fieldname(1:Key(1)), '([0-9\- '']|\. )+', 'match'))
@@ -67,10 +65,10 @@ for nb = 1:numel(fieldnames(data_header))
        clear i
        for i = 1:length(channum)
            if ~isempty(strfind(data_file.good_data(i).channel_data.filename, data_file_filename))
-               eval(['cont1_data.' fieldname '.sdftr_chan' '=' ...
+               eval(['cont_data.cont1_data.' fieldname '.sdftr_chan' '=' ...
                   'data_file.good_data(i).channel_data.sdftr_chan(:,data_header.' fieldname ');'])
               if ~isempty(layer(i))
-               eval(['cont1_data.' fieldname '.cell_class' '='...
+               eval(['cont_data.cont1_data.' fieldname '.cell_class' '='...
                   'layer(i);'])
               end
            end
@@ -80,10 +78,10 @@ for nb = 1:numel(fieldnames(data_header))
        clear i
        for i = 1:length(channum)
            if ~isempty(strfind(data_file.good_data(i).channel_data.filename, data_file_filename))
-               eval(['cont2_data.' fieldname '.sdftr_chan' '=' ...
+               eval(['cont_data.cont2_data.' fieldname '.sdftr_chan' '=' ...
                   'data_file.good_data(i).channel_data.sdftr_chan(:,data_header.' fieldname ');'])
              if ~isempty(layer(i))
-               eval(['cont2_data.' fieldname '.cell_class' '='...
+               eval(['cont_data.cont2_data.' fieldname '.cell_class' '='...
                   'layer(i);'])
               end
            end
@@ -92,21 +90,20 @@ for nb = 1:numel(fieldnames(data_header))
        clear i
        for i = 1:length(channum)
            if ~isempty(strfind(data_file.good_data(i).channel_data.filename, data_file_filename))
-               eval(['cont3_data.' fieldname '.sdftr_chan' '=' ...
+               eval(['cont_data.cont3_data.' fieldname '.sdftr_chan' '=' ...
                   'data_file.good_data(i).channel_data.sdftr_chan(:,data_header.' fieldname ');'])
              if ~isempty(layer(i))
-              eval(['cont3_data.' fieldname '.cell_class' '='...
+              eval(['cont_data.cont3_data.' fieldname '.cell_class' '='...
                   'layer(i);'])
               end
            end
        end
    end
 end
-cont_data = struct();
-cont_data.cont1_data = cont1_data;
-cont_data.cont2_data = cont2_data;
-cont_data.cont3_data = cont3_data;
 
+
+norm_data = struct();
+org_data = struct();
 clear channum layer_idx
 for c =1:3
 
@@ -118,9 +115,9 @@ eval(['cont_data_fieldnames = fieldnames(cont_data.cont' num2str(c) '_data)';])
       
 fieldname = char(cont_data_fieldnames(nb));
 cell = char('M');
-     if eval(['strcmp(cont_data.cont1_data.' fieldname '.cell_class' ',' 'cell' ')== 1'])
+     if eval(['strcmp(cont_data.cont' num2str(c) '_data.' fieldname '.cell_class' ',' 'cell' ')== 1'])
        log_layer(nb) = 1;
-     elseif eval(['strcmp(cont_data.cont1_data.' fieldname '.cell_class' ',' 'cell' ')==0'])
+     elseif eval(['strcmp(cont_data.cont' num2str(c) '_data.' fieldname '.cell_class' ',' 'cell' ')==0'])
        log_layer(nb) = 0;
      end
   end
@@ -150,9 +147,9 @@ clear i ;
    lpdSUA      = filtfilt(bwb,bwa, raw_mean_bs(:,i));
   
    %{
-   [pkssu, locssu] = findpeaks(lpdMUA(50:1201));
-x = xabs - locssu(1);
-plot(x, lpdMUA)
+   locssu = findpeaks(lpdSUA(50:1201));
+x = xabs - locssu.loc(1);
+plot(x, lpdSUA)
 hold on
 %}
     
@@ -161,8 +158,9 @@ hold on
   for len = 30:550
             if filtered_dSUA(200+len,i) < filtered_dSUA(200+len+1,i)
    locsdSUA_filtered = findpeaks(filtered_dSUA(200+len:1350,i));
-        break
+       
             end
+           break  
   end
          
 
@@ -188,10 +186,80 @@ hold on
  upper_bound =max_low_dist-all_locsdSUA_filtered(layer_idx(n))+length(xabs);
  
  fp_locked_data(lower_bound:upper_bound,n) = filtered_dSUA(:,layer_idx(n));
- %x = 1:length(fp_locked_data(:,1));
- %plot(x, fp_locked_data(:,n))
- %hold on
+ %{
+ x = 1:length(fp_locked_data(:,1));
+ plot(x, fp_locked_data(:,n))
+ hold on
+ %}
   norm_fp_locked(lower_bound:upper_bound,n) = (fp_locked_data(lower_bound:upper_bound,n)-min(fp_locked_data(lower_bound:upper_bound,n)))/(max(fp_locked_data(lower_bound:upper_bound,n))-min(fp_locked_data(lower_bound:upper_bound,n)));
  end
+ eval(['norm_data.norm_fp_locked' num2str(c) '= norm_fp_locked;'])
+ eval(['org_data.fp_locked_data' num2str(c) '= fp_locked_data;'])
+ end
 
+h = figure();
+clear c
+for c= 1:3
+ eval(['mean_filtered = mean(org_data.fp_locked_data' num2str(c) ', 2)']);
+ 
+ locsdSUA_mean = findpeaks(mean_filtered(1:end));
+ x1 = -locsdSUA_mean.loc(1)+1:length(mean_filtered)-locsdSUA_mean.loc(1);
+ plot(x1,mean_filtered,'LineWidth',1 )
+ hold on
+ %ylim([-.1 1.1])
+ %green= [167/255 185/255 54/255])
+ %black = [24/255 23/255 23/255] )
+ %pink = [229/255, 49/255, 90/255])
+
+  hold on
+  plot([0 0], ylim,'k')
+
+      set(gca, 'linewidth',2)
+      set(gca,'box','off')
+   title({'M class cells mean spiking activity'}, 'Interpreter', 'none')
+    xlabel('Time from first{\bf peak} (ms)')
+    ylabel('Spike rate (Normalized)')
+    legend( 'Mean contrasts1 (0-0.33)','Mean contrasts2 (0.33-0.66)','Mean contrasts3 (0.66-1)','Location', 'bestoutside')
+     xlim([-300 1100])
+     
 end
+  filename = strcat('C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\plots\', strcat(contrast{2},'mean_M_class_fpaligned_mean_contrasts'));  
+  %saveas(gcf, strcat(filename, '.svg'));
+  saveas(gcf, strcat(filename, '.png'));
+  
+  
+  %% only plot contrasts 1
+  
+  h = figure();
+
+for i = 1:length(org_data.fp_locked_data1(1,:))
+ mean_filtered = org_data.fp_locked_data1(:,i);
+ for len = 1:1500
+            if mean_filtered(len) < filtered_dSUA(len+1)
+ locsdSUA_mean = findpeaks(mean_filtered(1:end));
+      
+            end
+              break
+ end
+ x1 = -locsdSUA_mean.loc(1)-len+1:length(mean_filtered)-locsdSUA_mean.loc(1)-len;
+ plot(x1,mean_filtered) %'LineWidth',1 )
+ hold on
+ %ylim([-.1 1.1])
+ %green= [167/255 185/255 54/255])
+ %black = [24/255 23/255 23/255] )
+ %pink = [229/255, 49/255, 90/255])
+
+  hold on
+  plot([0 0], ylim,'k')
+
+      set(gca, 'linewidth',2)
+      set(gca,'box','off')
+   title({'M class cells mean spiking activity'}, 'Interpreter', 'none')
+    xlabel('Time from first{\bf peak} (ms)')
+    ylabel('Spike rate (Normalized)')
+      xlim([-300 1100])   
+end
+filename = strcat('C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\plots\', strcat(contrast{2},'mean_M_class_fpaligned_norm_mean_contrast1'));  
+  %saveas(gcf, strcat(filename, '.svg'));
+  saveas(gcf, strcat(filename, '.png'));
+  
