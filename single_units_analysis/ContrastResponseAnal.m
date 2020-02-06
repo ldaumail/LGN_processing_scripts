@@ -158,9 +158,9 @@ hold on
   for len = 30:550
             if filtered_dSUA(200+len,i) < filtered_dSUA(200+len+1,i)
    locsdSUA_filtered = findpeaks(filtered_dSUA(200+len:1350,i));
-       
+       break
             end
-           break  
+           %break  
   end
          
 
@@ -186,9 +186,17 @@ hold on
  upper_bound =max_low_dist-all_locsdSUA_filtered(layer_idx(n))+length(xabs);
  
  fp_locked_data(lower_bound:upper_bound,n) = filtered_dSUA(:,layer_idx(n));
- %{
- x = 1:length(fp_locked_data(:,1));
- plot(x, fp_locked_data(:,n))
+  %{
+ for len = 30:1500
+            if fp_locked_data(len,n) < fp_locked_data(len+1,n)
+locsdSUA_mean = findpeaks(fp_locked_data(len:end, n));
+        break
+            end 
+   end
+ x1 = -locsdSUA_mean.loc(1)-len+1:length(fp_locked_data(:,n))-locsdSUA_mean.loc(1)-len;
+
+ %x = 1:length(fp_locked_data(:,1));
+ plot(x1, fp_locked_data(:,n))
  hold on
  %}
   norm_fp_locked(lower_bound:upper_bound,n) = (fp_locked_data(lower_bound:upper_bound,n)-min(fp_locked_data(lower_bound:upper_bound,n)))/(max(fp_locked_data(lower_bound:upper_bound,n))-min(fp_locked_data(lower_bound:upper_bound,n)));
@@ -200,11 +208,20 @@ hold on
 h = figure();
 clear c
 for c= 1:3
+    %get rid out of the nans to find out the first peak location
  eval(['mean_filtered = mean(org_data.fp_locked_data' num2str(c) ', 2)']);
- 
- locsdSUA_mean = findpeaks(mean_filtered(1:end));
- x1 = -locsdSUA_mean.loc(1)+1:length(mean_filtered)-locsdSUA_mean.loc(1);
- plot(x1,mean_filtered,'LineWidth',1 )
+ %avoiding the wrong peak is not really important for the mean, but let's
+ %do it to make sure it's all aligned well
+  for len = 30:1500
+            if mean_filtered(len) < mean_filtered(len+1)
+ locsdSUA_mean = findpeaks(mean_filtered(len:end));
+  break
+            end 
+   end
+ x1 = -locsdSUA_mean.loc(1)-len+1:length(mean_filtered)-locsdSUA_mean.loc(1)-len;
+ %include nans back in for the plotting
+eval(['mean_with_nans = nanmean(org_data.fp_locked_data' num2str(c) ', 2)']);
+ plot(x1,mean_with_nans,'LineWidth',1 )
  hold on
  %ylim([-.1 1.1])
  %green= [167/255 185/255 54/255])
@@ -212,18 +229,19 @@ for c= 1:3
  %pink = [229/255, 49/255, 90/255])
 
   hold on
-  plot([0 0], ylim,'k')
+  plot([0 0], ylim,'k','HandleVisibility','off')
 
       set(gca, 'linewidth',2)
       set(gca,'box','off')
    title({'M class cells mean spiking activity'}, 'Interpreter', 'none')
     xlabel('Time from first{\bf peak} (ms)')
     ylabel('Spike rate (Normalized)')
-    legend( 'Mean contrasts1 (0-0.33)','Mean contrasts2 (0.33-0.66)','Mean contrasts3 (0.66-1)','Location', 'bestoutside')
      xlim([-300 1100])
      
 end
-  filename = strcat('C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\plots\', strcat(contrast{2},'mean_M_class_fpaligned_mean_contrasts'));  
+legend( 'Mean contrasts1 (0-0.33)','Mean contrasts2 (0.33-0.66)','Mean contrasts3 (0.66-1)','Location', 'bestoutside')
+    
+  filename = strcat('C:\Users\maier\Documents\LGN_data\single_units\inverted_power_channels\good_single_units_data_4bumps_more\plots\', strcat(contrast{2},'M_class_fpaligned_nanmean_contrasts_xlim'));  
   %saveas(gcf, strcat(filename, '.svg'));
   saveas(gcf, strcat(filename, '.png'));
   

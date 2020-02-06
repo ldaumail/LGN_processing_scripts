@@ -68,7 +68,7 @@ clear i ;
 end
 
  %% Plot the data time locked to the first peak 
-   h = figure;
+ 
 xabs = 1:1302;
 %x = 1:1702;
 nyq = 15000;
@@ -86,13 +86,13 @@ clear i ;
      
    mean_data = mean(squeeze(data_file.good_data(i).channel_data.hypo{1,2}.cont_su(600:1901,:,:)),2);
    
-   raw_mean_bs(:,i) = mean_data;
+   raw_mean(:,i) = mean_data;
    
    lpc       = 100; %low pass cutoff
    lWn       = lpc/nyq;
    [bwb,bwa] = butter(4,lWn,'low');
    %cdata = ;
-   lpdSUA      = filtfilt(bwb,bwa, raw_mean_bs(:,i));
+   lpdSUA      = filtfilt(bwb,bwa, raw_mean(:,i));
   
    %{
    [pkssu, locssu] = findpeaks(lpdMUA(50:1201));
@@ -104,26 +104,32 @@ hold on
  filtered_dSUA(:,i) = lpdSUA;
  %find peaks for every channel that is not accounting for any maxima in the
  %beginning of the trace
+ clear len
   for len = 30:550
             if filtered_dSUA(len,i) < filtered_dSUA(len+1,i)
    locsdSUA_filtered = findpeaks(filtered_dSUA(len:1201,i));
-        break
+       break
             end
+      
   end
          
 
  %store first peak location
+ if exist('locsdSUA_filtered', 'var') == 1
  all_locsdSUA_filtered(i) = locsdSUA_filtered.loc(1)+len;
+ 
  %compute the distance between the first peak and stimulus onset and store  
  %in a matrix
  up_dist(:,i)= length(xabs)- all_locsdSUA_filtered(i);
  end
- 
+ end
+  h = figure;
  %get the max distance 
  max_low_dist = max(all_locsdSUA_filtered);
  %create new matrix with the length(max(d)+max(xabs - d))
  new_dist = max_low_dist + max(up_dist);
  fp_locked_data = nan(new_dist,length(channum));
+ 
  for n = 1:length(channum)
  lower_bound =max_low_dist-all_locsdSUA_filtered(n)+1;
  upper_bound =max_low_dist-all_locsdSUA_filtered(n)+length(xabs);
@@ -133,9 +139,9 @@ hold on
  plot(x, fp_locked_data(:,n))
  hold on
  end
- 
+  
   mean_filtered = mean(fp_locked_data, 2);
- locsdSUA_mean = findpeaks(mean_filtered(1:1586));
+ locsdSUA_mean = findpeaks(mean_filtered(1:length(mean_filtered)));
  x1 = 1:length(mean_filtered);
  plot(x1,mean_filtered,'LineWidth',1, 'Color', 'black')
 txt1 = 'mean';
@@ -144,7 +150,7 @@ text(x1(400), mean_filtered(400), txt1)
  
  median = nanmedian(fp_locked_data, 2);
  median_filtered      = filtfilt(bwb,bwa, median);
- locsdMUA_median = findpeaks(median_filtered(1:1586));
+ locsdMUA_median = findpeaks(median_filtered(1:length(mean_filtered)));
  x2 = 1:length(mean_filtered); 
  plot(x2,median_filtered,'LineWidth',1, 'Color', 'red')
 
@@ -186,6 +192,7 @@ clear i ;
    locs = findpeaks(lpdSUA(len:1200));
         break
             end
+        
   end
          
          if length(locs.loc) >= 4
@@ -283,6 +290,7 @@ hold on
    locsdSUA_filtered = findpeaks(filtered_dSUA(200+len:1350,i));
         break
             end
+      
   end
          
 
@@ -312,8 +320,9 @@ hold on
  %plot(x, fp_locked_data(:,n))
  %hold on
   norm_fp_locked(lower_bound:upper_bound,n) = (fp_locked_data(lower_bound:upper_bound,n)-min(fp_locked_data(lower_bound:upper_bound,n)))/(max(fp_locked_data(lower_bound:upper_bound,n))-min(fp_locked_data(lower_bound:upper_bound,n)));
-  end
+ end
  
+  %get the significant adapting single units 
  clear sig_su mean_sig_su
   cnt = 0;
  all_mean_data = nan(4, length(layer_idx));
@@ -406,6 +415,7 @@ clear i ;
    locsdSUA_filtered = findpeaks(filtered_dSUA(len:1251,i));
         break
             end
+ 
   end
          
 
@@ -515,6 +525,7 @@ hold on
    locsdSUA_filtered = findpeaks(filtered_dSUA(len:1251,i));
         break
             end
+   
   end
          
 
@@ -616,6 +627,7 @@ for peakalign = 1:4
    locsdSUA_filtered = findpeaks(filtered_dSUA(200+len:1350,i));
         break
             end
+   
   end
          
 

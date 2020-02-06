@@ -30,7 +30,7 @@ keepidx = [2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27
  filename(strfind(filename, '.')) = []; 
  
  all_locs = nan(4,length(data(1,:)));
- all_pks = nan(4,length(data(1,:)));
+ all_norm_pks = nan(4,length(data(1,:)));
  all_lpsu= nan(length(data(:,1)),length(data(1,:)));
  nyq = 15000;
  %all_locs =nan(4,length(channel_data(1,1,:)));
@@ -39,12 +39,14 @@ keepidx = [2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27
    lWn       = lpc/nyq;
    [bwb,bwa] = butter(4,lWn,'low');
    lpsu      = filtfilt(bwb,bwa, data(:,n));
+   
+   norm_lpsu = (lpsu - min(lpsu))/(max(lpsu)- min(lpsu));
    %all_lpsu(:,n) = lpsu;
   % plot(lpsu)
- if ~all(lpsu==0) 
+ if ~all(isnan(norm_lpsu)) 
   for len = 30:550
-            if lpsu(len) < lpsu(len+1)
-   locs = findpeaks(lpsu(len:1200));
+            if norm_lpsu(len) < norm_lpsu(len+1)
+   locs = findpeaks(norm_lpsu(len:1200));
         break
             end
   end
@@ -52,7 +54,7 @@ keepidx = [2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27
          if length(locs.loc) >= 4
              %adjust location to the first data point of lpsu (+len),
     lpsulocs = locs.loc(1:4) + len;
-   all_pks(:,n) = lpsu(lpsulocs(1:4));
+   all_norm_pks(:,n) = norm_lpsu(lpsulocs(1:4));
   
          end 
  end
@@ -60,12 +62,12 @@ keepidx = [2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27
  end
  
  namelist(1,1:length(sprintf('chan_%d',i))) = sprintf('chan_%d',i);
- data_peaks(i).namelist = all_pks;
+ norm_data_peaks(i).namelist = all_norm_pks;
 channelfilename = [channeldir filename];
 %save(strcat(channelfilename, '.mat'), 'all_pks');
  end
- allfilename = [channeldir 'all_data_peaks'];
- save(strcat(allfilename, '.mat'), 'data_peaks');
+ allfilename = [channeldir 'all_norm_data_peaks'];
+ save(strcat(allfilename, '.mat'), 'norm_data_peaks');
  
  
  %% plotting channels with pvalues on 3 last peaks computed on R with LMER with Kenward-Roger approximation

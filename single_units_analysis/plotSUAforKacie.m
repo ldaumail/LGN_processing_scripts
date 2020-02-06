@@ -63,12 +63,39 @@ for chan = 1:4:length(channum)
    set(gcf,'Units','inches') 
    set(gcf,'position',[1 1 8.5 11])
    filename = strcat('C:\Users\maier\Documents\LGN_data\single_units\plots\',strcat(f{2}, sprintf('trigger_raw_data_%d', chan)));
-   saveas(gcf, strcat(filename, '.png'));
+  % saveas(gcf, strcat(filename, '.png'));
 end  
 
+%% plot a nice unit
 
 
+xabs = -200:1301;
 
+filtered_dSUA = nan(length(xabs), length(channum));
+
+nyq = 15000;
+   mean_data = mean(squeeze(data_file.good_data(23).channel_data.hypo{1,2}.cont_su(400:1901,:,:)),2);
+ %
+   lpc       = 100; %low pass cutoff
+   lWn       = lpc/nyq;
+   [bwb,bwa] = butter(4,lWn,'low');
+   lpdSUA      = filtfilt(bwb,bwa, mean_data);
+%}
+   h = figure();
+    plot(xabs, lpdSUA)
+    hold on
+    plot([0 0], ylim,'k')
+    hold on
+    plot([1150 1150], ylim,'k')
+       set(gca, 'linewidth',2)
+      set(gca,'box','off')
+    sgtitle('Low pass filtered single unit time series', 'Interpreter', 'none')
+    xlabel('Time from stimulus onset (ms)')
+    ylabel({'\fontsize{9}Contacts','\fontsize{9}Spike Rate (spikes/s)'})
+   set(gcf,'Units','inches') 
+   set(gcf,'position',[1 1 8.5 11])
+   
+   
   %%
    mean_data = mean(squeeze(data_file.good_data(i).channel_data.hypo{1,2}.cont_su(300:800,:,:)),2);
    
